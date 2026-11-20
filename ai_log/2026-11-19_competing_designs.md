@@ -35,6 +35,12 @@ theta ~ N(0,1)), experiments 05 and 06.
   Note: "REIG eps=0.2" picking broad is not an error in the robust sense; at that
   radius the robust optimum is broad.
 
-**Next steps:** more seeds / N1 for Exp 06 (30 seeds is noisy); try a richer
+**Update - Exp 06 rerun with 100 seeds and N1 = 1000:** the crossing rule is still
+nearly unbiased from M = 20 (errors <= 0.01) and still best at M = 20 (88% correct vs
+75% NMC, 85% contrastive). But at M = 5 it is WORSE than NMC (58% vs 78%). The 30-seed
+run had hidden this. NMC's bias at M = 5 is huge (+17.5 nats for sharp) but favours the
+right sensor, so it is right for the wrong reason. Accuracy and correct ranking differ.
+
+**Next steps:**; try a richer
 family of misspecified priors for the regret question; write up Exp 03 + 05 as
 the main story for the slides.

@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How Robust Is Robust Enough? Calibrating the KL Radius in Robust Expected Information Gain</title>
+<script>
+  window.MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] } };
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<style>
+  :root { --fg: #1d1d1f; --muted: #5f6368; --accent: #b3261e; --bg: #fdfcfa; --rule: #e4e1da; }
+  body { margin: 0; background: var(--bg); color: var(--fg);
+         font: 17px/1.65 Georgia, "Iowan Old Style", "Times New Roman", serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 48px 22px 96px; }
+  h1 { font-size: 2.0rem; line-height: 1.2; margin: 0 0 .4rem; }
+  .subtitle { color: var(--muted); font-size: 1.05rem; margin: 0 0 1.4rem; }
+  .meta { color: var(--muted); font: 14px/1.5 system-ui, sans-serif; border-top: 1px solid var(--rule);
+          border-bottom: 1px solid var(--rule); padding: 10px 0; margin-bottom: 2rem; }
+  h2 { font-size: 1.4rem; margin-top: 2.6rem; border-bottom: 1px solid var(--rule); padding-bottom: .2rem; }
+  h3 { font-size: 1.12rem; margin-top: 1.8rem; }
+  ul { list-style: none; padding-left: 1.2em; }
+  ul > li::before { content: "-"; display: inline-block; width: 1em; margin-left: -1em; color: var(--muted); }
+  figure { margin: 1.6rem 0; }
+  figure img { width: 100%; border: 1px solid var(--rule); background: white; }
+  figcaption { font: 14px/1.5 system-ui, sans-serif; color: var(--muted); margin-top: .4rem; }
+  .callout { background: #f3efe7; border-left: 3px solid var(--accent); padding: 12px 16px; margin: 1.4rem 0; }
+  .draft { background: #fff4d6; border: 1px solid #e8c766; padding: 10px 14px; font: 14px/1.5 system-ui, sans-serif; }
+  table { border-collapse: collapse; width: 100%; font: 14px/1.4 system-ui, sans-serif; margin: 1rem 0; }
+  th, td { border-bottom: 1px solid var(--rule); padding: 6px 8px; text-align: left; }
+  th { background: #f3efe7; }
+  code { font: 14px Menlo, Consolas, monospace; background: #f0ede6; padding: 1px 4px; border-radius: 3px; }
+  a { color: var(--accent); }
+  .refs li { margin-bottom: .5rem; }
+</style>
+</head>
+<body>
+<main>
+
+<p class="draft"><strong>Draft.</strong> First version written Nov 19, 2026. Numbers come from the scripts in this
+repository and may change as we add seeds and models. Sections marked [TODO] still need the team's input.</p>
+
+<h1>How Robust Is Robust Enough?</h1>
+<p class="subtitle">Calibrating the KL radius in robust expected information gain</p>
+<div class="meta">
+  [Team members] &middot; Data Mining (16:960:588), Rutgers University, Fall 2026 &middot; Research question Q01 &middot;
+  Code: <a href="https://github.com/benz3927/robust-eig-kl-radius">github.com/benz3927/robust-eig-kl-radius</a>
+</div>
+
+<!-- ============================================================ -->
+<h2>1. Problem and motivation</h2>
+
+<p>Bayesian experimental design picks the experiment that is expected to teach us the most. The usual score is the
+<em>expected information gain</em> (EIG): how much, on average, the experiment's outcome $y$ will shrink our uncertainty
+about an unknown parameter $\theta$. For a prior $p(\theta)$, likelihood $p(y\mid\theta,\xi)$ and design $\xi$,</p>
+
+$$ I(p,\xi) \;=\; \mathbb{E}_{p(\theta)}\Big[\,\mathrm{KL}\big(p(y\mid\theta,\xi)\,\big\|\,p(y\mid\xi)\big)\Big]. $$
+
+<p>The catch is that EIG is computed under the prior, and priors are often chosen for convenience. If the prior is a
+little wrong, the ranking of experiments can change. EIG is also usually estimated by nested Monte Carlo, and sampling
+error acts much like a perturbed prior.</p>
+
+<p>Go and Isaac (2022) proposed <strong>robust EIG (REIG)</strong>: score each design by its worst case over all priors
+$q$ within a KL ball of radius $\varepsilon$ around $p$. Their approach is elegant and cheap to compute, but it leaves one
+number open. <strong>How large should $\varepsilon$ be?</strong> Too small and REIG is just EIG. Too large and every
+design looks bad, and the method becomes overly cautious. The authors say directly that "a definite a priori estimate
+for $\varepsilon$ seems unlikely in most cases" and suggest, as future work, tying $\varepsilon$ to the error of the
+sampling estimator.</p>
+
+<p>That is our question. We do not solve it in general. Instead we (a) build small models where every quantity can be
+checked exactly, (b) map out how $\varepsilon$ interacts with estimator noise and with the design decision, and
+(c) test one concrete calibration rule.</p>
+
+<!-- ============================================================ -->
+<h2>2. Background: what REIG actually computes</h2>
+
+<p>The true worst case $\inf_{q\in A(\varepsilon,p)} I(q,\xi)$, with
+$A(\varepsilon,p)=\{q : \mathrm{KL}(q\,\|\,p)\le\varepsilon\}$, is hard: EIG is concave in $q$, so minimizing it over a
+convex set can have many local minima. Go and Isaac replace EIG with its tangent (affine) approximation at $p$ and
+minimize that instead. Writing</p>
+
+$$ d(\theta) \;=\; \mathrm{KL}\big(p(y\mid\theta,\xi)\,\big\|\,p(y\mid\xi)\big) \;\ge 0 , $$
+
+<p>REIG becomes a one-dimensional convex problem (their eq. 18):</p>
+
+$$ I_\varepsilon(p,\xi) \;=\; -\inf_{\lambda\ge 0}\Big\{\lambda\varepsilon + \lambda\log \mathbb{E}_{p(\theta)}\big[e^{-d(\theta)/\lambda}\big]\Big\}. $$
+
+<p>Three facts matter for us:</p>
+<ul>
+  <li>The KL ball is on the <strong>prior of $\theta$ only</strong>. The likelihood is held fixed.</li>
+  <li>REIG sits between EIG and the true worst case, $I(p)\ge I_\varepsilon \ge I^{\text{true}}_\varepsilon$, and is
+      within $\varepsilon$ of the true worst case.</li>
+  <li>With samples $d_1,\dots,d_N$, REIG is a "log-sum-exp" reweighting that leans toward the smallest $d_i$ as
+      $\varepsilon$ grows (their Algorithm 1). At large $\varepsilon$ it approaches $\min_i d_i$.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2>3. Methodology</h2>
+
+<h3>3.1 Models where we know the answer</h3>
+<ul>
+  <li><strong>Linear-Gaussian.</strong> $\theta\sim N(0,1)$, $y\mid\theta\sim N(x\theta,1)$. EIG, $d(\theta)$ and even REIG
+      have closed forms, so we can measure the exact error of any estimator.</li>
+  <li><strong>Two blood tests</strong> (the paper's own example). A binary condition and two tests with the same EIG at a
+      50% prior. Everything is exact.</li>
+  <li><strong>Sharp vs broad sensor</strong> (new). $\theta\sim N(0,1)$, $y\sim N(\tanh((\theta-c)/w),\,0.05^2)$. A sharp
+      sensor ($w=0.5$) is precise near zero but saturates in the tails; a broad one ($w=2.5$) is less precise but works
+      over a wider range. We computed all values on a fine grid, so there is no sampling noise. This is the first model
+      we found where the best design changes with $\varepsilon$.</li>
+</ul>
+
+<h3>3.2 Estimators</h3>
+<ul>
+  <li><strong>Nested Monte Carlo (NMC)</strong>: estimates $p(y)$ with $M$ prior samples. For finite $M$ it
+      <em>over</em>-estimates EIG.</li>
+  <li><strong>Contrastive</strong> (as in ACE/PCE): also includes the true $\theta_i$ when estimating $p(y)$. For finite
+      $M$ it <em>under</em>-estimates EIG.</li>
+  <li><strong>REIG</strong>: Algorithm 1 of the paper, with $N_1$ prior samples and $N_2$ outcomes per sample.</li>
+</ul>
+
+<h3>3.3 A calibration rule to test</h3>
+<p>Following the paper's suggestion, we tested this rule: apply the robust minimum (REIG) to the over-estimating NMC
+samples and the robust maximum (their eq. 19) to the under-estimating contrastive samples. Both move toward the truth as
+$\varepsilon$ grows. Pick $\varepsilon^*$ where they meet, and use that common value as the estimate. The data choose the
+radius.</p>
+
+<!-- ============================================================ -->
+<h2>4. AI-assisted research process</h2>
+
+<p>We used AI throughout, and we treated every AI output as a claim to check, not a result. Our loop was:</p>
+<ul>
+  <li><strong>Generate.</strong> An AI assistant (Claude) wrote most of the code and ran the experiments.</li>
+  <li><strong>Check against something independent.</strong> Closed-form answers, the paper's equations, the paper's own
+      numbers, and physical sense (information can't be negative).</li>
+  <li><strong>Get a second opinion.</strong> A second AI model reviewed the code without seeing the first one's
+      reasoning.</li>
+  <li><strong>Reproduce.</strong> Every script runs from a fixed seed. We re-ran everything on a separate machine and got
+      identical numbers.</li>
+  <li><strong>Log it.</strong> Each session is recorded in <code>ai_log/</code>: what was asked, what came back, how it was
+      checked, and what changed.</li>
+</ul>
+
+<div class="callout">
+<p><strong>What the checks caught</strong></p>
+<ul>
+  <li><strong>A wrong definition.</strong> The first REIG implementation put the KL ball on the joint distribution of
+      $(\theta,y)$ instead of on the prior. It ran fine but gave <em>negative</em> information gain. Reading the paper
+      showed this was a different, more conservative criterion (their eq. 20).</li>
+  <li><strong>Overclaiming.</strong> The second AI flagged that our README blurred REIG with the true worst case, and that
+      one explanation of a result ("the smallest estimate is the noisiest") was not supported. Both were fixed.</li>
+  <li><strong>A refactoring bug.</strong> A sign error appeared only at $\varepsilon=0$. We caught it because a baseline
+      error jumped from 0.04 to 1.18 between runs.</li>
+  <li><strong>A misleading figure.</strong> A plot title claimed "the safer choice depends on $\kappa$." The numbers
+      showed the opposite, so the title was changed.</li>
+</ul>
+</div>
+
+<p>[TODO: each team member adds a sentence on what they checked or did by hand.]</p>
+
+<!-- ============================================================ -->
+<h2>5. Results</h2>
+
+<h3>5.1 The implementation matches theory</h3>
+<p>On the linear-Gaussian model, sampled REIG follows the exact closed form, and the paper's bounds hold everywhere we
+tested ($I \ge I_\varepsilon$, and $I_\varepsilon$ minus the worst Gaussian-prior EIG stays below $\varepsilon$).
+The joint-ball variant, by contrast, goes far below zero.</p>
+<figure><img src="figures/00_baseline.png" alt="REIG exact vs sampled, and the joint-ball variant">
+<figcaption>Left: REIG, exact (lines) vs sampled with Algorithm 1 (dots). Right: the joint-ball criterion our first
+implementation accidentally computed.</figcaption></figure>
+
+<h3>5.2 Estimator noise and $\varepsilon$ interact</h3>
+<p>Because REIG leans toward the smallest $d_i$, noise in each $d_i$ pulls it down. The number of outcomes per
+$\theta$ ($N_2$) matters much more than the inner sample size $M$. At $\varepsilon=0.5$ and $x=0.5$, the bias was
+$-0.45$ with $N_2=1$, $-0.12$ with $N_2=5$ and $-0.03$ with $N_2=25$. So the "right" $\varepsilon$ cannot be chosen
+without knowing the estimator's noise.</p>
+<figure><img src="figures/01_inner_noise.png" alt="Bias of sampled REIG vs eps for different budgets">
+<figcaption>Mean error of sampled REIG relative to the exact value, for each sampling budget (10 seeds each).</figcaption></figure>
+
+<h3>5.3 REIG can miss sensitivity</h3>
+<p>In the two-test example both tests have the same EIG at a 50% prior. Both REIG and the true worst case prefer test B
+for every $\varepsilon>0$, which agrees with the paper's argument. But REIG says test B <em>loses nothing</em>: its line
+is flat, because B's $d(\theta)$ is the same for both values of $\theta$, so the tangent approximation sees no
+sensitivity. B's true worst case actually falls from 0.216 to 0.105 nats at $\varepsilon=0.3$. The part REIG drops is
+exactly the curvature term it approximates away.</p>
+<figure><img src="figures/03_two_tests.png" alt="Two-test example">
+<figcaption>Left: EIG as a function of the prior (the paper's Figure 1). Right: REIG (solid) and the true worst case
+(dashed) for each test.</figcaption></figure>
+
+<h3>5.4 ...but it can also catch a danger simple checks miss</h3>
+<p>With the sharp and broad sensors, plain EIG prefers sharp (2.10 vs 1.94 nats). REIG switches to broad at about
+$\varepsilon\approx 0.15$&ndash;$0.2$. If we only consider Gaussian priors (a wrong prior mean or variance), sharp stays
+best at every radius. But REIG's own worst-case prior for the sharp sensor is two-humped, not Gaussian. Evaluating the
+<em>real</em> EIG there, the preference flips between $\varepsilon=0.1$ and $0.2$, in line with REIG.</p>
+
+<p>There is a twist. If we measure robustness by worst-case <em>regret</em> (how much worse than the best sensor we could
+do) instead of worst-case EIG, sharp is the safer choice at every radius we tried. REIG answers the max-min question,
+and that is not the only reasonable notion of "robust." (Regret was checked over Gaussian priors plus the two REIG
+worst-case priors, not over the whole ball.)</p>
+<figure><img src="figures/05_competing_designs.png" alt="Sharp vs broad sensor">
+<figcaption>Left: the two sensors, the prior, and REIG's worst-case prior for the sharp sensor at $\varepsilon=0.2$.
+Middle: REIG, worst Gaussian prior, and real EIG at REIG's worst prior. Right: worst-case regret.</figcaption></figure>
+
+<h3>5.5 A data-driven radius</h3>
+<p>On the linear-Gaussian model with a small inner budget ($M=10$), the crossing rule had an error (RMSE) of 0.061 nats,
+compared with 0.246 for NMC, 0.115 for the contrastive estimator and 0.099 for their simple average. The chosen
+$\varepsilon^*$ was small (0 to 0.074) and grew with the strength of the design.</p>
+<figure><img src="figures/04_eps_calibration.png" alt="Crossing rule">
+<figcaption>Left: EIG estimates with $M=10$. Right: the radius $\varepsilon^*$ chosen by the crossing rule.</figcaption></figure>
+
+<p id="exp06">On the sensor model we asked a practical question: with noisy estimates, which method picks the sensor
+with the higher EIG? With 100 seeds per budget, the crossing rule's estimates were nearly unbiased from $M=20$ on
+(errors of 0.01 nats or less), and it picked correctly most often at $M=20$ (88% vs 75% for NMC and 85% for the
+contrastive estimator). From $M=100$ on, almost every method picks correctly. At the tiniest budget ($M=5$) the
+crossing rule did <em>worse</em> than NMC (58% vs 78%). NMC's bias there is enormous (+17.5 nats for the sharp
+sensor), but it happens to favor the sharp sensor, so NMC picks correctly for the wrong reason. An accurate estimate
+and a correct ranking are not the same thing.</p>
+<figure><img src="figures/06_noisy_design_choice.png" alt="Picking the right sensor from noisy estimates">
+<figcaption>Fraction of runs (100 seeds per budget) in which each method picks the sharp sensor, which has the higher
+EIG under the reference prior. "REIG $\varepsilon=0.2$" picking broad is not an error in the robust sense, since at
+that radius the robust choice is broad.</figcaption></figure>
+
+<!-- ============================================================ -->
+<h2>6. Discussion and conclusions</h2>
+
+<p>What we learned:</p>
+<ul>
+  <li><strong>$\varepsilon$ has two jobs.</strong> It is meant to cover prior misspecification, but in practice it also
+      absorbs estimator noise, and the two pull in different directions. A radius that is sensible for the prior can be
+      far too aggressive for a noisy estimator.</li>
+  <li><strong>The tangent approximation cuts both ways.</strong> It can hide sensitivity completely (two-test example),
+      and it can also reveal non-Gaussian worst cases that a "wrong mean or variance" check misses (sensor example).</li>
+  <li><strong>"Robust" needs a definition.</strong> Maximizing the worst-case EIG and minimizing worst-case regret chose
+      different sensors in the same problem.</li>
+  <li><strong>Pairing an over- and under-estimator gives a usable radius.</strong> The crossing rule gave the
+      most accurate EIG estimates we tried on our toy problems, which supports the paper's suggestion. A more accurate
+      estimate did not always mean a better design choice, though (Section 5.5, $M=5$).</li>
+</ul>
+
+<p>Limitations:</p>
+<ul>
+  <li>All models are small and one-dimensional in $\theta$. We have not tested the paper's own benchmarks
+      (A/B test, preference, pharmacokinetic).</li>
+  <li>The true worst case is only bounded, not computed, in the sensor model.</li>
+  <li>The crossing rule has no theory yet, and we only tested it with plain NMC and a simple contrastive estimator.</li>
+</ul>
+
+<p>Future directions:</p>
+<ul>
+  <li>Test the crossing rule on the paper's benchmarks and with learned (variational) estimators.</li>
+  <li>Derive when the crossing point exists and how $\varepsilon^*$ scales with $M$ and $N_2$.</li>
+  <li>Compare REIG with regret-based robust design on problems with many candidate designs.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2>References</h2>
+<ul class="refs">
+  <li>J. Go and T. Isaac. Robust expected information gain for optimal Bayesian experimental design using ambiguity sets.
+      <em>UAI</em>, PMLR 180:728&ndash;737, 2022. <a href="https://arxiv.org/abs/2205.09914">arXiv:2205.09914</a></li>
+  <li>A. Foster, M. Jankowiak, E. Bingham, P. Horsfall, Y. W. Teh, T. Rainforth and N. Goodman. Variational Bayesian
+      optimal experimental design. <em>NeurIPS</em>, 2019.</li>
+  <li>A. Foster, M. Jankowiak, M. O'Meara, Y. W. Teh and T. Rainforth. A unified stochastic gradient approach to designing
+      Bayesian-optimal experiments. <em>AISTATS</em>, 2020.</li>
+  <li>A. Shapiro. Distributionally robust stochastic programming. <em>SIAM Journal on Optimization</em>, 27(4), 2017.</li>
+  <li>K. J. Ryan. Estimating expected information gains for experimental designs with application to the random
+      fatigue-limit model. <em>Journal of Computational and Graphical Statistics</em>, 12(3), 2003.</li>
+  <li>A. Krause and J. H&uuml;botter. <em>Probabilistic Artificial Intelligence</em>. arXiv:2502.05244, 2025.</li>
+</ul>
+
+<p style="color:var(--muted);font:14px system-ui,sans-serif;margin-top:3rem">All figures can be reproduced with
+<code>for f in experiments/0*.py; do python "$f"; done</code>.</p>
+</main>
+</body>
+</html>

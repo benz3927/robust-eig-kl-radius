@@ -2,7 +2,7 @@
 
 Same sensor model as Exp 05. Under the reference prior the sharp sensor is the
 right choice (EIG 2.096 vs 1.943). With a small inner budget M, nested MC is
-biased, and the bias differs between sensors. For each budget and 30 seeds we
+biased, and the bias differs between sensors. For each budget and 100 seeds we
 pick the sensor with the highest estimate, using:
   - NMC (upper-biased), contrastive (lower-biased), their average
   - the Exp 04 crossing rule (REIG of NMC meets REIG-max of contrastive)
@@ -17,7 +17,7 @@ from src.eig import reig_dual, reig_max_dual
 
 names = list(S.SENSORS)
 truth = {k: S.eig(k) for k in names}
-Ms, REPS, N1, N2 = [5, 20, 100, 500], 30, 300, 5
+Ms, REPS, N1, N2 = [5, 20, 100, 500], 100, 1000, 5
 
 
 def crossing(d_up, d_lo, hi=2.0, iters=40):
