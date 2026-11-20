@@ -8,60 +8,94 @@
   window.MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] } };
 </script>
 <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
 <style>
-  :root { --fg: #1d1d1f; --muted: #5f6368; --accent: #b3261e; --bg: #fdfcfa; --rule: #e4e1da; }
-  body { margin: 0; background: var(--bg); color: var(--fg);
-         font: 17px/1.65 Georgia, "Iowan Old Style", "Times New Roman", serif; }
-  main { max-width: 760px; margin: 0 auto; padding: 48px 22px 96px; }
-  h1 { font-size: 2.0rem; line-height: 1.2; margin: 0 0 .4rem; }
-  .subtitle { color: var(--muted); font-size: 1.05rem; margin: 0 0 1.4rem; }
-  .meta { color: var(--muted); font: 14px/1.5 system-ui, sans-serif; border-top: 1px solid var(--rule);
-          border-bottom: 1px solid var(--rule); padding: 10px 0; margin-bottom: 2rem; }
-  h2 { font-size: 1.4rem; margin-top: 2.6rem; border-bottom: 1px solid var(--rule); padding-bottom: .2rem; }
-  h3 { font-size: 1.12rem; margin-top: 1.8rem; }
-  ul { list-style: none; padding-left: 1.2em; }
-  ul > li::before { content: "-"; display: inline-block; width: 1em; margin-left: -1em; color: var(--muted); }
-  figure { margin: 1.6rem 0; }
-  figure img { width: 100%; border: 1px solid var(--rule); background: white; }
-  figcaption { font: 14px/1.5 system-ui, sans-serif; color: var(--muted); margin-top: .4rem; }
-  .callout { background: #f3efe7; border-left: 3px solid var(--accent); padding: 12px 16px; margin: 1.4rem 0; }
-  .draft { background: #fff4d6; border: 1px solid #e8c766; padding: 10px 14px; font: 14px/1.5 system-ui, sans-serif; }
-  table { border-collapse: collapse; width: 100%; font: 14px/1.4 system-ui, sans-serif; margin: 1rem 0; }
-  th, td { border-bottom: 1px solid var(--rule); padding: 6px 8px; text-align: left; }
-  th { background: #f3efe7; }
-  code { font: 14px Menlo, Consolas, monospace; background: #f0ede6; padding: 1px 4px; border-radius: 3px; }
-  a { color: var(--accent); }
-  .refs li { margin-bottom: .5rem; }
-  .category { font: 600 13px/1 system-ui, sans-serif; letter-spacing: .08em; text-transform: uppercase;
-              color: var(--accent); margin: 1.6rem 0 .6rem; }
-  .abstract { border-left: 3px solid var(--rule); padding: 2px 0 2px 16px; margin: 1.6rem 0; }
-  .abstract strong:first-child { font: 600 13px system-ui, sans-serif; letter-spacing: .06em; text-transform: uppercase; }
-  nav.toc { background: #f6f3ec; border: 1px solid var(--rule); padding: 12px 20px; margin: 1.6rem 0 2rem;
-            font: 15px/1.7 system-ui, sans-serif; }
-  nav.toc ol { margin: .3rem 0; padding-left: 1.3em; } nav.toc ol ol { list-style: none; padding-left: .8em; }
+  :root {
+    --bg: #0f1218; --panel: #161b24; --panel2: #1c2230; --fg: #e6e8ee; --muted: #9aa3b5;
+    --accent: #f2a65a; --accent2: #7cc4e8; --rule: #2a3141;
+    --sans: "Space Grotesk", system-ui, sans-serif;
+    --serif: "Source Serif 4", Georgia, serif;
+    --mono: "JetBrains Mono", Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 18px/1.7 var(--serif); }
+  ::selection { background: rgba(242,166,90,.3); }
+  header.hero { max-width: 900px; margin: 0 auto; padding: 72px 28px 24px; }
+  main { max-width: 900px; margin: 0 auto; padding: 0 28px 120px; }
+  .article { max-width: 780px; margin: 0 auto; }
+  .category { font: 500 13px/1 var(--sans); letter-spacing: .22em; text-transform: uppercase; color: var(--accent); margin-bottom: 22px; }
+  h1 { font: 700 clamp(2.2rem, 5vw, 3.3rem)/1.08 var(--sans); letter-spacing: -.02em; margin: 0 0 14px; }
+  .subtitle { font: 400 1.25rem/1.4 var(--sans); color: var(--muted); margin: 0 0 26px; }
+  .authors { font: 500 17px var(--sans); margin: 0 0 6px; }
+  .affil { color: var(--muted); font-size: 16px; margin: 0 0 22px; }
+  .pills { display: flex; gap: 10px; flex-wrap: wrap; }
+  .pill { font: 500 14px var(--sans); color: var(--fg); text-decoration: none; border: 1px solid var(--rule);
+          border-radius: 999px; padding: 8px 16px; background: var(--panel); transition: border-color .15s, color .15s; }
+  .pill:hover { border-color: var(--accent); color: var(--accent); }
+  .draft { max-width: 780px; margin: 0 auto 10px; font: 14px/1.5 var(--sans); color: #f6d9a8;
+           background: rgba(242,166,90,.08); border: 1px solid rgba(242,166,90,.35); border-radius: 10px; padding: 10px 14px; }
+  .abstract { border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); padding: 30px 0; margin: 38px 0; }
+  .abstract .label { display: block; font: 500 12px var(--sans); letter-spacing: .2em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+  .abstract p { margin: 0; }
+  nav.toc { background: var(--panel); border: 1px solid var(--rule); border-radius: 14px; padding: 18px 24px; margin: 0 0 48px; font: 15px/1.9 var(--sans); }
+  nav.toc .label { font: 500 12px var(--sans); letter-spacing: .2em; text-transform: uppercase; color: var(--muted); }
+  nav.toc ol { margin: 6px 0 0; padding-left: 1.4em; } nav.toc ol ol { list-style: none; padding-left: .6em; margin: 0; }
+  nav.toc li::marker { color: var(--accent); }
   nav.toc a { color: var(--fg); text-decoration: none; } nav.toc a:hover { color: var(--accent); }
-  .finding { border: 1px solid var(--rule); background: white; padding: 12px 16px; margin: 1.2rem 0; }
-  .finding .label { font: 600 14px system-ui, sans-serif; color: var(--accent); display: block; margin-bottom: .3rem; }
-  a.cite { text-decoration: none; }
+  h2 { font: 600 1.75rem/1.25 var(--sans); letter-spacing: -.01em; margin: 64px 0 18px; scroll-margin-top: 24px; }
+  h3 { font: 600 1.22rem/1.35 var(--sans); margin: 40px 0 12px; scroll-margin-top: 24px; }
+  .num { color: var(--accent); margin-right: .45em; }
+  p { margin: 0 0 1.1em; }
+  strong { color: #fff; font-weight: 600; }
+  a { color: var(--accent2); text-underline-offset: 3px; }
+  ul { list-style: none; padding-left: 1.3em; }
+  ul > li { margin-bottom: .35em; }
+  ul > li::before { content: "-"; display: inline-block; width: 1.1em; margin-left: -1.1em; color: var(--accent); font-weight: 600; }
+  .eq { overflow-x: auto; }
+  mjx-container[display="true"] { overflow-x: auto; overflow-y: hidden; padding: 4px 0; }
+  figure { margin: 34px -40px; }
+  figure img { width: 100%; display: block; border-radius: 14px; background: #fff; padding: 12px; }
+  figcaption { font: 14.5px/1.55 var(--sans); color: var(--muted); margin: 12px 40px 0; }
+  .callout { background: var(--panel); border: 1px solid var(--rule); border-left: 3px solid var(--accent); border-radius: 12px; padding: 18px 22px; margin: 28px 0; }
+  .callout > p:first-child { font: 600 15px var(--sans); letter-spacing: .04em; color: var(--accent); margin-bottom: .6em; }
+  .finding { background: linear-gradient(180deg, var(--panel2), var(--panel)); border: 1px solid var(--rule); border-radius: 12px; padding: 18px 22px; margin: 30px 0; }
+  .finding .label { display: block; font: 600 15px var(--sans); color: var(--accent); margin-bottom: 6px; }
+  table { border-collapse: collapse; width: 100%; font: 15px/1.5 var(--sans); margin: 22px 0 26px; }
+  th, td { border-bottom: 1px solid var(--rule); padding: 10px 12px; text-align: left; }
+  th { color: var(--muted); font-weight: 500; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; }
+  td:last-child { color: var(--accent); font-weight: 500; }
+  code { font: 14px var(--mono); background: var(--panel2); border: 1px solid var(--rule); padding: 1px 6px; border-radius: 6px; }
+  .refs { padding-left: 1.4em; } .refs li { margin-bottom: .7em; font-size: 16px; } .refs li::marker { color: var(--accent); }
+  .refs li:target { background: rgba(242,166,90,.12); border-radius: 6px; }
+  a.cite { text-decoration: none; font: 500 .85em var(--sans); vertical-align: .15em; }
+  .todo { color: var(--accent); font-style: italic; }
+  footer { font: 14px var(--sans); color: var(--muted); border-top: 1px solid var(--rule); margin-top: 72px; padding-top: 20px; }
+  @media (max-width: 860px) { figure { margin: 30px 0; } figcaption { margin: 10px 0 0; } }
 </style>
 </head>
 <body>
+<header class="hero">
+  <div class="category">Bayesian experimental design</div>
+  <h1>How Robust Is Robust Enough?</h1>
+  <p class="subtitle">Calibrating the KL radius in robust expected information gain</p>
+  <p class="authors"><span class="todo">[Team members]</span></p>
+  <p class="affil">Rutgers University &mdash; Data Mining (16:960:588), Fall 2026 &middot; Research question Q01</p>
+  <div class="pills">
+    <a class="pill" href="#references">References &darr;</a>
+    <a class="pill" href="https://github.com/benz3927/robust-eig-kl-radius">Code on GitHub &nearr;</a>
+    <a class="pill" href="https://arxiv.org/abs/2205.09914">Go &amp; Isaac (2022) &nearr;</a>
+  </div>
+</header>
 <main>
-
 <p class="draft"><strong>Draft.</strong> First version written Nov 19, 2026. Numbers come from the scripts in this
 repository and may change as we add seeds and models. Sections marked [TODO] still need the team's input.</p>
-
-<div class="category">Bayesian experimental design</div>
-<h1>How Robust Is Robust Enough?</h1>
-<p class="subtitle">Calibrating the KL radius in robust expected information gain</p>
-<div class="meta">
-  [Team members] &middot; Data Mining (16:960:588), Rutgers University, Fall 2026 &middot; Research question Q01 &middot;
-  Code: <a href="https://github.com/benz3927/robust-eig-kl-radius">github.com/benz3927/robust-eig-kl-radius</a>
-  &middot; <a href="#references">References &darr;</a>
-</div>
-
+<div class="article">
 <div class="abstract">
-<p><strong>Abstract.</strong> Robust expected information gain (REIG) scores an experiment by its worst case over priors
+<span class="label">Abstract</span>
+<p>Robust expected information gain (REIG) scores an experiment by its worst case over priors
 within a KL ball of radius $\varepsilon$, but gives no rule for choosing $\varepsilon$. On three small models where every
 quantity can be checked exactly, we find that (i) $\varepsilon$ is entangled with estimator noise, (ii) REIG's tangent
 approximation can both hide sensitivity and expose non-Gaussian worst cases, (iii) REIG's design switch in a two-sensor
@@ -70,7 +104,7 @@ pairs an over- and an under-estimating EIG estimator picks a radius from the dat
 estimates we tried. All results are preliminary and come from one-dimensional toy models.</p>
 </div>
 
-<nav class="toc"><strong>Contents</strong>
+<nav class="toc"><span class="label">Contents</span>
 <ol>
   <li><a href="#s1">Problem and motivation</a></li>
   <li><a href="#s2">Background: what REIG actually computes</a></li>
@@ -87,7 +121,7 @@ estimates we tried. All results are preliminary and come from one-dimensional to
 </ol></nav>
 
 <!-- ============================================================ -->
-<h2 id="s1">1. Problem and motivation</h2>
+<h2 id="s1"><span class="num">1</span>Problem and motivation</h2>
 
 <p>Bayesian experimental design picks the experiment that is expected to teach us the most. The usual score is the
 <em>expected information gain</em> (EIG): how much, on average, the experiment's outcome $y$ will shrink our uncertainty
@@ -111,7 +145,7 @@ checked exactly, (b) map out how $\varepsilon$ interacts with estimator noise an
 (c) test one concrete calibration rule.</p>
 
 <!-- ============================================================ -->
-<h2 id="s2">2. Background: what REIG actually computes</h2>
+<h2 id="s2"><span class="num">2</span>Background: what REIG actually computes</h2>
 
 <p>The true worst case $\inf_{q\in A(\varepsilon,p)} I(q,\xi)$, with
 $A(\varepsilon,p)=\{q : \mathrm{KL}(q\,\|\,p)\le\varepsilon\}$, is hard: EIG is concave in $q$, so minimizing it over a
@@ -134,9 +168,9 @@ $$ I_\varepsilon(p,\xi) \;=\; -\inf_{\lambda\ge 0}\Big\{\lambda\varepsilon + \la
 </ul>
 
 <!-- ============================================================ -->
-<h2 id="s3">3. Methodology</h2>
+<h2 id="s3"><span class="num">3</span>Methodology</h2>
 
-<h3 id="s3-1">3.1 Models where we know the answer</h3>
+<h3 id="s3-1"><span class="num">3.1</span>Models where we know the answer</h3>
 <ul>
   <li><strong>Linear-Gaussian.</strong> $\theta\sim N(0,1)$, $y\mid\theta\sim N(x\theta,1)$. EIG, $d(\theta)$ and even REIG
       have closed forms, so we can measure the exact error of any estimator.</li>
@@ -148,7 +182,7 @@ $$ I_\varepsilon(p,\xi) \;=\; -\inf_{\lambda\ge 0}\Big\{\lambda\varepsilon + \la
       we found where the best design changes with $\varepsilon$.</li>
 </ul>
 
-<h3 id="s3-2">3.2 Estimators</h3>
+<h3 id="s3-2"><span class="num">3.2</span>Estimators</h3>
 <ul>
   <li><strong>Nested Monte Carlo (NMC)</strong> <a class="cite" href="#ref-ryan2003">[5]</a>: estimates $p(y)$ with $M$ prior samples. For finite $M$ it
       <em>over</em>-estimates EIG.</li>
@@ -157,14 +191,14 @@ $$ I_\varepsilon(p,\xi) \;=\; -\inf_{\lambda\ge 0}\Big\{\lambda\varepsilon + \la
   <li><strong>REIG</strong>: Algorithm 1 of the paper, with $N_1$ prior samples and $N_2$ outcomes per sample.</li>
 </ul>
 
-<h3 id="s3-3">3.3 A calibration rule to test</h3>
+<h3 id="s3-3"><span class="num">3.3</span>A calibration rule to test</h3>
 <p>Following the paper's suggestion, we tested this rule: apply the robust minimum (REIG) to the over-estimating NMC
 samples and the robust maximum (their eq. 19) to the under-estimating contrastive samples. Both move toward the truth as
 $\varepsilon$ grows. Pick $\varepsilon^*$ where they meet, and use that common value as the estimate. The data choose the
 radius.</p>
 
 <!-- ============================================================ -->
-<h2 id="s4">4. AI-assisted research process</h2>
+<h2 id="s4"><span class="num">4</span>AI-assisted research process</h2>
 
 <p>We used AI throughout, and we treated every AI output as a claim to check, not a result. Our loop was:</p>
 <ul>
@@ -198,12 +232,12 @@ radius.</p>
 </ul>
 </div>
 
-<p>[TODO: each team member adds a sentence on what they checked or did by hand.]</p>
+<p class="todo">[TODO: each team member adds a sentence on what they checked or did by hand.]</p>
 
 <!-- ============================================================ -->
-<h2 id="s5">5. Results</h2>
+<h2 id="s5"><span class="num">5</span>Results</h2>
 
-<h3 id="s5-1">5.1 The implementation matches theory</h3>
+<h3 id="s5-1"><span class="num">5.1</span>The implementation matches theory</h3>
 <p>On the linear-Gaussian model, sampled REIG follows the exact closed form, and the paper's bounds hold everywhere we
 tested ($I \ge I_\varepsilon$, and $I_\varepsilon$ minus the worst Gaussian-prior EIG stays below $\varepsilon$).
 The joint-ball variant, by contrast, goes far below zero.</p>
@@ -212,7 +246,7 @@ The joint-ball variant, by contrast, goes far below zero.</p>
 implementation accidentally computed.</figcaption></figure>
 
 <div class="finding"><span class="label">Finding 1 &mdash; The implementation matches the paper</span>Sampled REIG tracks an exact closed form, and the paper's bounds hold at every design and radius we tested.</div>
-<h3 id="s5-2">5.2 Estimator noise and $\varepsilon$ interact</h3>
+<h3 id="s5-2"><span class="num">5.2</span>Estimator noise and $\varepsilon$ interact</h3>
 <p>Because REIG leans toward the smallest $d_i$, noise in each $d_i$ pulls it down. The number of outcomes per
 $\theta$ ($N_2$) matters much more than the inner sample size $M$. At $\varepsilon=0.5$ and $x=0.5$, the bias was
 $-0.45$ with $N_2=1$, $-0.12$ with $N_2=5$ and $-0.03$ with $N_2=25$. So the "right" $\varepsilon$ cannot be chosen
@@ -221,7 +255,7 @@ without knowing the estimator's noise.</p>
 <figcaption>Mean error of sampled REIG relative to the exact value, for each sampling budget (10 seeds each).</figcaption></figure>
 
 <div class="finding"><span class="label">Finding 2 &mdash; $\varepsilon$ is entangled with estimator noise</span>Noise in the per-sample information gains pulls REIG down, mainly through $N_2$. A radius cannot be chosen without knowing the estimator's noise.</div>
-<h3 id="s5-3">5.3 REIG can miss sensitivity</h3>
+<h3 id="s5-3"><span class="num">5.3</span>REIG can miss sensitivity</h3>
 <p>In the two-test example both tests have the same EIG at a 50% prior. Both REIG and the true worst case prefer test B
 for every $\varepsilon>0$, which agrees with the paper's argument. But REIG says test B <em>loses nothing</em>: its line
 is flat, because B's $d(\theta)$ is the same for both values of $\theta$, so the tangent approximation sees no
@@ -232,7 +266,7 @@ exactly the curvature term it approximates away.</p>
 (dashed) for each test.</figcaption></figure>
 
 <div class="finding"><span class="label">Finding 3 &mdash; REIG can hide sensitivity</span>When $d(\theta)$ is flat in $\theta$, the tangent approximation reports no loss at all, even though the true worst case falls by half.</div>
-<h3 id="s5-4">5.4 ...but it can also catch a danger simple checks miss</h3>
+<h3 id="s5-4"><span class="num">5.4</span>...but it can also catch a danger simple checks miss</h3>
 <p>With the sharp and broad sensors, plain EIG prefers sharp (2.10 vs 1.94 nats). REIG switches to broad between
 $\varepsilon=0.15$ and $0.2$. If we only consider Gaussian priors (a wrong prior mean or variance), sharp stays best
 at every radius. But REIG's own worst-case prior for the sharp sensor is two-humped, not Gaussian, and it hurts the
@@ -264,7 +298,7 @@ that REIG answers the max-min question, and that is not the only reasonable noti
 Middle: REIG, worst Gaussian prior, and real EIG at REIG's worst prior. Right: largest regret over the priors we tested.</figcaption></figure>
 
 <div class="finding"><span class="label">Finding 4 &mdash; REIG's design switch is real</span>Bracketing the true worst case between $I_\varepsilon-\varepsilon$ and the lowest EIG over tested priors confirms that the better sensor in the worst case changes between $\varepsilon=0.1$ and $0.2$, a change that Gaussian-only checks miss (within the accuracy of our numerical grid).</div>
-<h3 id="s5-5">5.5 A data-driven radius</h3>
+<h3 id="s5-5"><span class="num">5.5</span>A data-driven radius</h3>
 <p>On the linear-Gaussian model with a small inner budget ($M=10$), the crossing rule had an error (RMSE) of 0.061 nats,
 compared with 0.246 for NMC, 0.115 for the contrastive estimator and 0.099 for their simple average. The chosen
 $\varepsilon^*$ was small (0 to 0.074) and grew with the strength of the design.</p>
@@ -288,7 +322,7 @@ that radius the robust choice is broad.</figcaption></figure>
 <div class="finding"><span class="label">Finding 5 &mdash; Pairing estimators picks a usable radius</span>Choosing $\varepsilon$ where the robust versions of an over- and an under-estimator meet gave the most accurate EIG estimates we tried, though not always the best design ranking at the smallest budget.</div>
 
 <!-- ============================================================ -->
-<h2 id="s6">6. Discussion and conclusions</h2>
+<h2 id="s6"><span class="num">6</span>Discussion and conclusions</h2>
 
 <p>What we learned:</p>
 <ul>
@@ -336,8 +370,9 @@ that radius the robust choice is broad.</figcaption></figure>
   <li id="ref-krause2025">A. Krause and J. H&uuml;botter. <em>Probabilistic Artificial Intelligence</em>. arXiv:2502.05244, 2025.</li>
 </ol>
 
-<p style="color:var(--muted);font:14px system-ui,sans-serif;margin-top:3rem">All figures can be reproduced with
-<code>for f in experiments/0*.py; do python "$f"; done</code>.</p>
+<footer>All figures can be reproduced from the repository with
+<code>for f in experiments/0*.py; do python "$f"; done</code>. Built as a single static HTML page and hosted on GitHub Pages.</footer>
+</div>
 </main>
 </body>
 </html>
