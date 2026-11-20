@@ -24,3 +24,15 @@ sensor's tilted prior is two-humped; Exp 06 numbers match.
 sharp better at eps 0.02-0.1, overlap at 0.15, broad better at 0.2-0.4. So REIG's
 switch is confirmed for the true worst case, within grid accuracy.
 Saved in `results/05_true_worst_intervals.csv`.
+
+**Third pass (blog review, 10:58 PM):** the reviewer checked the live blog (figures
+load, links resolve, interval table matches) and asked for wording fixes, all accepted:
+- "every quantity can be checked exactly" -> "closed-form checks or numerical reference
+  calculations" (the sensor model uses quadrature)
+- NMC over- / contrastive under-estimation qualified as "in expectation"
+- "both move toward the truth" -> "the two estimates move toward each other; the
+  crossing point need not equal the true EIG"
+- AI-process description corrected: the second model DID see the first model's pasted
+  reasoning, and reproduction means "first run in the AI's cloud workspace, then re-run
+  on Ben's laptop with identical numbers"
+Still open: team names and each member's contribution line.

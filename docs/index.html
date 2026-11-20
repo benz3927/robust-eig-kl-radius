@@ -96,8 +96,8 @@ repository and may change as we add seeds and models. Sections marked [TODO] sti
 <div class="abstract">
 <span class="label">Abstract</span>
 <p>Robust expected information gain (REIG) scores an experiment by its worst case over priors
-within a KL ball of radius $\varepsilon$, but gives no rule for choosing $\varepsilon$. On three small models where every
-quantity can be checked exactly, we find that (i) $\varepsilon$ is entangled with estimator noise, (ii) REIG's tangent
+within a KL ball of radius $\varepsilon$, but gives no rule for choosing $\varepsilon$. On three small models with closed-form
+checks or numerical reference calculations, we find that (i) $\varepsilon$ is entangled with estimator noise, (ii) REIG's tangent
 approximation can both hide sensitivity and expose non-Gaussian worst cases, (iii) REIG's design switch in a two-sensor
 problem is confirmed for the true worst case by bracketing it with the paper's own bound, and (iv) a simple rule that
 pairs an over- and an under-estimating EIG estimator picks a radius from the data and gives the most accurate EIG
@@ -140,8 +140,8 @@ design looks bad, and the method becomes overly cautious. The authors say direct
 for $\varepsilon$ seems unlikely in most cases" and suggest, as future work, tying $\varepsilon$ to the error of the
 sampling estimator.</p>
 
-<p>That is our question. We do not solve it in general. Instead we (a) build small models where every quantity can be
-checked exactly, (b) map out how $\varepsilon$ interacts with estimator noise and with the design decision, and
+<p>That is our question. We do not solve it in general. Instead we (a) build small models with closed-form checks or
+numerical reference calculations, (b) map out how $\varepsilon$ interacts with estimator noise and with the design decision, and
 (c) test one concrete calibration rule.</p>
 
 <!-- ============================================================ -->
@@ -185,17 +185,18 @@ $$ I_\varepsilon(p,\xi) \;=\; -\inf_{\lambda\ge 0}\Big\{\lambda\varepsilon + \la
 <h3 id="s3-2"><span class="num">3.2</span>Estimators</h3>
 <ul>
   <li><strong>Nested Monte Carlo (NMC)</strong> <a class="cite" href="#ref-ryan2003">[5]</a>: estimates $p(y)$ with $M$ prior samples. For finite $M$ it
-      <em>over</em>-estimates EIG.</li>
+      <em>over</em>-estimates EIG in expectation.</li>
   <li><strong>Contrastive</strong> (as in ACE/PCE <a class="cite" href="#ref-foster2020">[3]</a>): also includes the true $\theta_i$ when estimating $p(y)$. For finite
-      $M$ it <em>under</em>-estimates EIG.</li>
+      $M$ it <em>under</em>-estimates EIG in expectation.</li>
   <li><strong>REIG</strong>: Algorithm 1 of the paper, with $N_1$ prior samples and $N_2$ outcomes per sample.</li>
 </ul>
 
 <h3 id="s3-3"><span class="num">3.3</span>A calibration rule to test</h3>
 <p>Following the paper's suggestion, we tested this rule: apply the robust minimum (REIG) to the over-estimating NMC
-samples and the robust maximum (their eq. 19) to the under-estimating contrastive samples. Both move toward the truth as
-$\varepsilon$ grows. Pick $\varepsilon^*$ where they meet, and use that common value as the estimate. The data choose the
-radius.</p>
+samples and the robust maximum (their eq. 19) to the under-estimating contrastive samples. As $\varepsilon$ grows, the two
+estimates move toward each other. Pick $\varepsilon^*$ where they meet, and use that common value as the estimate. The data
+choose the radius, but the crossing point need not equal the true EIG; how close it lands is an empirical question we test
+below.</p>
 
 <!-- ============================================================ -->
 <h2 id="s4"><span class="num">4</span>AI-assisted research process</h2>
@@ -205,10 +206,10 @@ radius.</p>
   <li><strong>Generate.</strong> An AI assistant (Claude) wrote most of the code and ran the experiments.</li>
   <li><strong>Check against something independent.</strong> Closed-form answers, the paper's equations, the paper's own
       numbers, and physical sense (information can't be negative).</li>
-  <li><strong>Get a second opinion.</strong> A second AI model reviewed the code without seeing the first one's
-      reasoning.</li>
-  <li><strong>Reproduce.</strong> Every script runs from a fixed seed. We re-ran everything on a separate machine and got
-      identical numbers.</li>
+  <li><strong>Get a second opinion.</strong> A second AI model reviewed the code, the first model's pasted
+      reasoning and the results, and re-ran the experiments.</li>
+  <li><strong>Reproduce.</strong> Every script runs from a fixed seed. The experiments were first run in the AI's cloud
+      workspace and then re-run on a team member's laptop, with identical numbers.</li>
   <li><strong>Log it.</strong> Each session is recorded in <code>ai_log/</code>: what was asked, what came back, how it was
       checked, and what changed.</li>
 </ul>
