@@ -20,6 +20,7 @@ The paper leaves this open (Sec. 8).
 ```
 src/eig.py            EIG / REIG estimators, closed forms for the linear-Gaussian model
 src/binary_tests.py   the paper's two-blood-test example, computed exactly
+src/sensors.py        sharp-vs-broad sensor model where the robust design choice flips
 experiments/          one script per experiment, fixed seeds
 results/              CSVs and figures written by the experiments
 ai_log/               one note per AI session: prompt, output, how we checked it
@@ -34,6 +35,8 @@ docs/                 the blog (GitHub Pages)
 | `02_bounds_check.py` | Do the paper's bounds hold, and how far is REIG from a worst-case prior? |
 | `03_two_tests.py` | The paper's two-test example: REIG vs true worst case as eps grows |
 | `04_eps_calibration.py` | Exploratory rule: choose eps where REIG of an upper-bound estimator meets REIG-max of a lower-bound estimator |
+| `05_competing_designs.py` | Sharp vs broad sensor: where does the robust choice flip, and does REIG agree with the real worst case? |
+| `06_noisy_design_choice.py` | With noisy EIG estimates, which method picks the right sensor most often? |
 
 ## Setup
 ```bash
