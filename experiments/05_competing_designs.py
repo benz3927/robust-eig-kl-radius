@@ -12,8 +12,11 @@ For each eps we compute, per sensor:
 The last two are feasible priors, so min(both) is an upper bound on the true
 worst case I_true. The paper's theory says REIG >= I_true and REIG - I_true <= eps.
 
-Then a decision view: if the real prior is anywhere within KL kappa of p, what is
-the worst-case regret of picking each sensor?
+We also bracket the true worst case: I_true lies in [REIG - eps, min over tested
+priors] (paper eq. 16 for the lower end; feasibility for the upper end).
+
+Then a decision view: the largest regret of each sensor over the priors we TESTED
+at radius kappa (Gaussian ball + two REIG tilts). This is not a global worst case.
 """
 import numpy as np
 import matplotlib.pyplot as plt
@@ -56,11 +59,25 @@ for r in rows:
     pick = lambda a, b: names[int(b > a)]
     print(f"{r[0]:>5} | {pick(r[1], r[5]):>9} | {pick(r[2], r[6]):>16} | {pick(r[4], r[8]):>16} |"
           f" {r[1]:.3f}/{r[5]:.3f} | {r[4]:.3f}/{r[8]:.3f}")
-print("REIG >= worst bound - eps check:",
+print("REIG - (min over tested priors) <= eps:",
       all(bool(np.all(rows[:, 1 + 4 * j] - rows[:, 4 + 4 * j] <= rows[:, 0] + 1e-6)) for j in range(2)))
-print("REIG >= worst bound check:          ",
+print("REIG >= (min over tested priors):      ",
       all(bool(np.all(rows[:, 1 + 4 * j] >= rows[:, 4 + 4 * j] - 1e-6)) for j in range(2)))
-print("\nworst-case regret if the real prior is within KL kappa:")
+# Interval for the TRUE worst case (within grid accuracy):
+#   lower end  REIG - eps            (paper eq. 16: |REIG - I_true| <= eps)
+#   upper end  min over tested priors (each tested prior is feasible)
+print("\ninterval for the true worst-case EIG, [REIG - eps, min over tested priors]:")
+intervals = []
+for r in rows[1:]:
+    e = r[0]
+    s_lo, s_hi = r[1] - e, r[4]
+    b_lo, b_hi = r[5] - e, r[8]
+    verdict = "broad" if b_lo > s_hi else "sharp" if s_lo > b_hi else "overlap"
+    intervals.append([e, s_lo, s_hi, b_lo, b_hi])
+    print(f"  eps={e:<5} sharp [{s_lo:.3f}, {s_hi:.3f}]  broad [{b_lo:.3f}, {b_hi:.3f}]  -> {verdict}")
+np.savetxt(f"{RESULTS}/05_true_worst_intervals.csv", np.array(intervals), delimiter=",", comments="",
+           header="eps,sharp_lower,sharp_upper,broad_lower,broad_upper")
+print("\nworst-case regret over the TESTED priors (Gaussian ball + two REIG tilts), radius kappa:")
 for r in regret:
     print(f"  kappa={r[0]:<5} sharp={r[1]:.3f}  broad={r[2]:.3f}  -> safer: {names[int(r[2] < r[1])]}")
 
@@ -82,6 +99,6 @@ axes[1].set_xlabel("eps"); axes[1].set_ylabel("nats"); axes[1].legend(fontsize=6
 axes[1].set_title("REIG flips at eps ~ 0.15; Gaussian priors never flip", fontsize=10)
 axes[2].plot(regret[:, 0], regret[:, 1], "C3o-", label="always pick sharp")
 axes[2].plot(regret[:, 0], regret[:, 2], "C0o-", label="always pick broad")
-axes[2].set_xlabel("kappa = KL size of the real prior error"); axes[2].set_ylabel("worst-case regret (nats)")
-axes[2].set_title("Worst-case regret: sharp is safer at every kappa", fontsize=10); axes[2].legend(fontsize=8)
+axes[2].set_xlabel("kappa = KL size of the real prior error"); axes[2].set_ylabel("max regret over tested priors (nats)")
+axes[2].set_title("Worst-case regret over tested priors: sharp lower", fontsize=10); axes[2].legend(fontsize=8)
 plt.tight_layout(); plt.savefig(f"{RESULTS}/05_competing_designs.png", dpi=150)

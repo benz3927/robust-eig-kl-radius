@@ -1,0 +1,26 @@
+# AI session - 2026-11-19 (evening) - Ben (second AI reviewer, Claude fixes)
+
+**Tools / models:** a second AI model re-ran Exp 04-06 in a temporary folder and
+reviewed the claims; Claude made the fixes.
+
+**Verified by the reviewer:** Exp 04, 05 and 06 reproduce the saved CSVs exactly.
+Crossing-rule RMSE 0.0606; REIG switches between eps 0.15 and 0.2; the sharp
+sensor's tilted prior is two-humped; Exp 06 numbers match.
+
+**Corrections requested, all accepted:**
+1. Exp 06 measures picking the NOMINAL-best sensor (estimation accuracy under p),
+   not protection against a wrong prior. Wording fixed in script, plot, blog, outline.
+2. The regret result covers only the priors we tested (Gaussian ball + two tilts).
+   Plot title and blog no longer call it a global worst case.
+3. The Exp 05 "bound check" label was wrong: it checks REIG - (min over tested
+   priors) <= eps, which alone does not establish the true worst case. Relabelled.
+4. Exp 04 and Exp 06 had separate crossing-rule copies with different fallbacks when
+   the curves are already crossed at eps = 0. Now one shared function,
+   `src/eig.py: crossing_estimate` (fallback: average of the two means).
+   Exp 04 results unchanged after the switch.
+
+**New result suggested by the reviewer:** bracket the true worst case as
+[REIG - eps, min over tested priors] (paper eq. 16 + feasibility). Computed for all eps:
+sharp better at eps 0.02-0.1, overlap at 0.15, broad better at 0.2-0.4. So REIG's
+switch is confirmed for the true worst case, within grid accuracy.
+Saved in `results/05_true_worst_intervals.csv`.

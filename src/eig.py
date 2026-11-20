@@ -142,3 +142,29 @@ def reig_max_dual(d, eps):
         return d.mean(), np.inf
     val, lam = _dual(d, eps, +1.0)
     return max(min(val, d.max()), d.mean()), lam
+
+
+def crossing_estimate(d_up, d_lo, hi=2.0, iters=40):
+    """Crossing rule (exploratory, our own; not from the paper).
+
+    d_up: per-theta samples from an UPPER-biased estimator (e.g. plain NMC)
+    d_lo: per-theta samples from a LOWER-biased estimator (e.g. contrastive)
+    As eps grows, REIG(d_up, eps) falls and REIG-max(d_lo, eps) rises.
+    Pick eps* where they meet and return (eps*, common value).
+    Fallbacks, shared by every experiment:
+      - curves already crossed at eps = 0 (mean(d_up) <= mean(d_lo)): eps* = 0,
+        estimate = average of the two means
+      - no crossing by eps = hi: eps* = hi, estimate = midpoint of the two curves
+    """
+    d_up, d_lo = np.asarray(d_up, float), np.asarray(d_lo, float)
+    f = lambda e: reig_dual(d_up, e)[0] - reig_max_dual(d_lo, e)[0]
+    if f(0.0) <= 0:
+        return 0.0, 0.5 * (d_up.mean() + d_lo.mean())
+    if f(hi) > 0:
+        return hi, 0.5 * (reig_dual(d_up, hi)[0] + reig_max_dual(d_lo, hi)[0])
+    lo_e, hi_e = 0.0, hi
+    for _ in range(iters):
+        mid = 0.5 * (lo_e + hi_e)
+        lo_e, hi_e = (mid, hi_e) if f(mid) > 0 else (lo_e, mid)
+    e = 0.5 * (lo_e + hi_e)
+    return e, 0.5 * (reig_dual(d_up, e)[0] + reig_max_dual(d_lo, e)[0])

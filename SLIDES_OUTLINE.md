@@ -43,6 +43,7 @@ Rough timing: about 1-1.5 min per slide, 13 slides. Figures are in `results/`.
 - Overclaiming caught by a second AI
 - A sign bug caught by a jump in a baseline number (0.04 -> 1.18)
 - A misleading plot title the numbers did not support
+- A second review narrowed four claims to what the evidence supports
 - Figure: `00_baseline.png` (right panel shows the wrong version)
 
 ## Part 3 - Results (about 6 min)
@@ -60,13 +61,15 @@ Rough timing: about 1-1.5 min per slide, 13 slides. Figures are in `results/`.
 **10. ...and it can catch a danger simple checks miss**
 - Sharp vs broad sensor; REIG flips at eps ~ 0.15-0.2
 - Gaussian-only checks never flip; REIG's own worst prior is two-humped
-- Twist: by worst-case regret, sharp is always safer
+- Bracketing the TRUE worst case ([REIG - eps, min over tested priors]) confirms the flip:
+  sharp better up to eps = 0.1, broad from eps = 0.2 (0.15 undecided)
+- Twist: by regret over the priors we tested, sharp is always lower
 - Figure: `05_competing_designs.png`
 
 **11. A data-driven radius**
 - Crossing rule: REIG of NMC meets REIG-max of contrastive
 - RMSE 0.061 vs 0.099-0.246 for the alternatives (linear-Gaussian, M = 10)
-- Sensor model (100 seeds): crossing rule nearly unbiased from M = 20, best pick rate at M = 20 (88% vs 75% NMC)
+- Sensor model (100 seeds), picking the NOMINAL-best sensor (estimation accuracy, not robustness): crossing rule nearly unbiased from M = 20, best pick rate at M = 20 (88% vs 75% NMC)
 - Honest caveat: at M = 5 it picks worse than NMC (58% vs 78%); NMC is right for the wrong reason
 - Figures: `04_eps_calibration.png`, `06_noisy_design_choice.png`
 
