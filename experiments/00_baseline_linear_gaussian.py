@@ -1,65 +1,59 @@
-"""Baseline: EIG and REIG on the linear-Gaussian model.
+"""Exp 00 - Baseline: EIG and REIG on the linear-Gaussian model.
 
-Checks:
-  1. NMC estimate of EIG vs closed form.
-  2. REIG from Algorithm 1 (sampled d_i) vs REIG from exact d(theta_i).
-  3. Comparison with the joint-ambiguity version (eq. 20), which is what the
-     first version of this repo computed by mistake and which can go negative.
-
+Three versions of REIG at each design x and radius eps:
+  - exact:   closed form, no Monte Carlo error (reig_closed_form)
+  - sampled: Algorithm 1 with nested-MC d_i (N1=500, N2=10, M=500)
+  - joint:   the joint-ambiguity criterion of eq. (20), for comparison only
 Run from repo root:  python experiments/00_baseline_linear_gaussian.py
 """
-import os
-import sys
-
 import numpy as np
 import matplotlib.pyplot as plt
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from src.eig import (eig_closed_form, d_closed_form, d_samples_nmc,
+from _common import RESULTS
+from src.eig import (eig_closed_form, reig_closed_form, d_samples_nmc,
                      log_ratio_samples_nmc, reig_dual)
 
 SEED = 2026
 xs = np.linspace(0.0, 3.0, 13)
 eps_list = [0.0, 0.05, 0.2, 0.5]
+k = len(eps_list)
 
 rows = []
 for i, x in enumerate(xs):
-    theta, d_hat = d_samples_nmc(x, rng=SEED + i)
-    d_exact = d_closed_form(theta, x)
+    _, d_hat = d_samples_nmc(x, rng=SEED + i)
     g_joint = log_ratio_samples_nmc(x, rng=SEED + 1000 + i)
     row = [x, eig_closed_form(x)]
+    row += [reig_closed_form(x, e) for e in eps_list]
     row += [reig_dual(d_hat, e)[0] for e in eps_list]
-    row += [reig_dual(d_exact, e)[0] for e in eps_list]
     row += [reig_dual(g_joint, e)[0] for e in eps_list]
     rows.append(row)
 rows = np.array(rows)
-k = len(eps_list)
+EX, SA, JO = 2, 2 + k, 2 + 2 * k
 
-os.makedirs("results", exist_ok=True)
-header = ",".join(["x", "eig_exact"]
-                  + [f"reig_nmc_eps_{e}" for e in eps_list]
-                  + [f"reig_exactd_eps_{e}" for e in eps_list]
+header = ",".join(["x", "eig_exact"] + [f"reig_exact_eps_{e}" for e in eps_list]
+                  + [f"reig_sampled_eps_{e}" for e in eps_list]
                   + [f"joint_eps_{e}" for e in eps_list])
-np.savetxt("results/00_baseline.csv", rows, delimiter=",", header=header, comments="")
+np.savetxt(f"{RESULTS}/00_baseline.csv", rows, delimiter=",", header=header, comments="")
 
-fig, axes = plt.subplots(1, 2, figsize=(10, 4), sharey=True)
 colors = plt.cm.viridis(np.linspace(0, 0.85, k))
-for ax, off, title in [(axes[0], 2, "REIG (Go & Isaac, KL ball on prior)"),
-                       (axes[1], 2 + 2 * k, "Joint KL ball (eq. 20), for comparison")]:
-    ax.plot(xs, rows[:, 1], "k-", lw=2, label="EIG, closed form")
-    for j, e in enumerate(eps_list):
-        ax.plot(xs, rows[:, off + j], "o--", ms=3, color=colors[j], label=f"eps = {e}")
-    ax.axhline(0, color="gray", lw=0.5)
-    ax.set_xlabel("design x")
-    ax.set_title(title, fontsize=10)
+fig, axes = plt.subplots(1, 2, figsize=(10, 4), sharey=True)
+ax = axes[0]
+for j, e in enumerate(eps_list):
+    ax.plot(xs, rows[:, EX + j], "-", color=colors[j], lw=2, label=f"exact, eps = {e}")
+    ax.plot(xs, rows[:, SA + j], "o", ms=4, color=colors[j])
+ax.plot([], [], "o", color="gray", label="sampled (Algorithm 1)")
+ax.set_title("REIG (KL ball on the prior): exact lines, sampled dots", fontsize=10)
+ax = axes[1]
+ax.plot(xs, rows[:, 1], "k-", lw=2, label="EIG")
+for j, e in enumerate(eps_list[1:], start=1):
+    ax.plot(xs, rows[:, JO + j], "o--", ms=3, color=colors[j], label=f"eps = {e}")
+ax.set_title("Joint KL ball (eq. 20), for comparison only", fontsize=10)
+for ax in axes:
+    ax.axhline(0, color="gray", lw=0.5); ax.set_xlabel("design x"); ax.legend(fontsize=7)
 axes[0].set_ylabel("information gain (nats)")
-axes[0].legend(fontsize=8)
-plt.tight_layout()
-plt.savefig("results/00_baseline.png", dpi=150)
+plt.tight_layout(); plt.savefig(f"{RESULTS}/00_baseline.png", dpi=150)
 
-print(f"max |NMC EIG - closed form|:            {np.max(np.abs(rows[:, 2] - rows[:, 1])):.4f}")
-print(f"max |REIG nmc - REIG exact d| (eps>0):  "
-      f"{np.max(np.abs(rows[:, 3:2 + k] - rows[:, 3 + k:2 + 2 * k])):.4f}")
-print(f"min REIG (prior ball), any eps:         {rows[:, 2:2 + k].min():.4f}")
-print(f"min joint-ball value, any eps:          {rows[:, 2 + 2 * k:].min():.4f}")
-print("saved results/00_baseline.csv and results/00_baseline.png")
+print(f"max |sampled EIG - exact| (eps=0):     {np.abs(rows[:, SA] - rows[:, 1]).max():.4f}")
+print(f"max |sampled REIG - exact REIG|:       {np.abs(rows[:, SA:JO] - rows[:, EX:SA]).max():.4f}")
+print(f"min exact REIG:                        {rows[:, EX:SA].min():.4f}")
+print(f"min sampled REIG:                      {rows[:, SA:JO].min():.4f}")
+print(f"min joint-ball value:                  {rows[:, JO:].min():.4f}")

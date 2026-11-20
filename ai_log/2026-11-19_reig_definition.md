@@ -11,16 +11,16 @@ to the per-(theta, y) terms log p(y|theta)/p(y).
 negative for eps = 0.5 at every design, which cannot happen for an information gain.
 Read the paper: the KL ball is on the prior p(theta) only (Sec. 2.1, 4), and the dual
 (eq. 18, Algorithm 1) is applied to d(theta) = KL(p(y|theta) || p(y)), which is >= 0.
-v1 was actually the joint-ambiguity criterion of eq. (20), which the paper notes is
+v1 was actually the joint-ambiguity criterion of eq. (20), which the paper says is
 more conservative and does not study.
 
 **Verdict:** changed. v2 follows Algorithm 1: N1 prior samples, N2 outcomes each,
-average to get d_i, then solve the 1-D dual. Added exact d(theta) for the Gaussian
-model as a check.
+average to get d_i, then solve the 1-D dual.
 
 **What we learned / next step:**
-- With exact d, REIG stays >= 0 and shrinks smoothly as eps grows.
+- With exact d, REIG stays >= 0.
 - With sampled d_i (N2 = 10), REIG can still dip slightly below 0 at large eps.
-  Large eps pushes the value toward min_i d_i, and the smallest estimate is also the
-  noisiest. So eps interacts with inner-estimator noise. This links directly to the
-  paper's open question (Sec. 8): choose eps on the order of the estimator error.
+  The true d_i are >= 0, so any negative value must come from estimation error,
+  and a large eps puts more weight on the lowest d_i estimates (paper Sec. 6.3).
+  (An earlier draft of this note said "the smallest estimate is the noisiest";
+  that was not established and was removed after review.)
