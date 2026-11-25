@@ -36,7 +36,11 @@ docs/                 the blog (GitHub Pages)
 | `03_two_tests.py` | The paper's two-test example: REIG vs true worst case as eps grows |
 | `04_eps_calibration.py` | Exploratory rule: choose eps where REIG of an upper-bound estimator meets REIG-max of a lower-bound estimator |
 | `05_competing_designs.py` | Sharp vs broad sensor: where does the robust choice flip, and does REIG agree with the real worst case? |
-| `06_noisy_design_choice.py` | With noisy EIG estimates, which method picks the right sensor most often? |
+| `06_noisy_design_choice.py` | With noisy EIG estimates, which method picks the nominal-best sensor most often? |
+| `07_calibrated_radius.py` | Does eps = z^2/(2N) make REIG a calibrated confidence bound, and does [REIG(PCE), REIG_max(NMC)] cover EIG at any M? (~8 min) |
+| `08_paired_certified_choice.py` | Certified design choice from a paired, calibrated lower bound on the EIG difference (~1 min) |
+| `09_theory_checks.py` | Theorem 4 (prior fitted from data, eps_p = chi2_k/(2 n0)) and Proposition 5 (delta-method bound) (~7 min) |
+| `10_symbolic_check.py` | Symbolic (sympy) derivation of the expansion behind Theorem 1, incl. the 2nd-order term (seconds; needs `pip install sympy`) |
 
 ## Setup
 ```bash

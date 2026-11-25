@@ -62,9 +62,10 @@ def eig(sensor, mu=0.0, tau=1.0):
     return float(w @ d_grid(sensor, w))
 
 
-def reig(sensor, eps):
-    """REIG (Go & Isaac eq. 18) with exact d(theta) and the prior as quadrature weights."""
-    w = prior_weights()
+def reig(sensor, eps, mu=0.0, tau=1.0):
+    """REIG (Go & Isaac eq. 18) with exact d(theta), reference prior N(mu, tau^2) as
+    quadrature weights (default: the standard reference prior)."""
+    w = prior_weights(mu, tau)
     d = d_grid(sensor, w)
     if eps <= 0:
         return float(w @ d)
@@ -153,3 +154,24 @@ def reig_tilt_prior(sensor, eps):
 
 def eig_weights(sensor, wq):
     return float(wq @ d_grid(sensor, wq))
+
+
+def d_exact_at(theta, sensor):
+    """Exact d(theta) (grid quadrature) at arbitrary theta values, by interpolation."""
+    return np.interp(theta, TH, d_grid(sensor, prior_weights()))
+
+
+def d_samples_indep(sensor, n1=200, n2=1, m=20, contrastive=False, rng=None):
+    """Sensor-model version with independent inner samples per theta_i (i.i.d. d_i)."""
+    rng = np.random.default_rng(rng)
+    th = rng.normal(size=n1)
+    mu = mean_fn(th, sensor)
+    y = mu[:, None] + rng.normal(0, S_NOISE, (n1, n2))
+    mu_in = mean_fn(rng.normal(size=(n1, 1, m)), sensor)
+    ll = lambda yy, mm: -0.5 * ((yy - mm) / S_NOISE) ** 2 - np.log(np.sqrt(2 * np.pi) * S_NOISE)
+    own = ll(y, mu[:, None])
+    inner = ll(y[..., None], mu_in)
+    if contrastive:
+        inner = np.concatenate([inner, own[..., None]], axis=-1)
+    log_ev = logsumexp(inner, axis=-1) - np.log(inner.shape[-1])
+    return (own - log_ev).mean(axis=1)

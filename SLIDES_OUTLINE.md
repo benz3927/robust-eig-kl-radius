@@ -73,10 +73,28 @@ Rough timing: about 1-1.5 min per slide, 13 slides. Figures are in `results/`.
 - Honest caveat: at M = 5 it picks worse than NMC (58% vs 78%); NMC is right for the wrong reason
 - Figures: `04_eps_calibration.png`, `06_noisy_design_choice.png`
 
+**11b. Main result: a calibrated radius for sampling noise**
+- Penalty is a variance penalty: REIG ~ EIG - sqrt(2 eps Var d)  (known DRO expansion, Duchi-Glynn-Namkoong 2021)
+- Match to a confidence bound: eps = z^2 / (2N)  (e.g. 0.0027 for N = 500)
+- Interval [REIG(PCE), REIG_max(NMC)] covers EIG 92-100% at any M; naive NMC interval 0-89%
+- Combined rule for prior + sampling: eps_total = (sqrt(eps_p) + sqrt(eps_N))^2, coverage 96-98%
+- Paired test picks the right sensor up to 100% of runs, wrong sensor in 0 of 2,700 runs
+- Figures: `07_calibrated_radius.png`, `08_paired_certified_choice.png`
+- What stays open: how big eps_p should be (modelling judgment); finite-sample correction for skewed d
+
+**11c. Theory: the full answer, under a stated model**
+- Thm 1: REIG = EIG - sqrt(2 eps Var d) + kappa3 eps/(3 sigma^2) + ...  (proof + sympy check, Exp 10)
+- Thm 2: eps_N = z^2/(2N) -> calibrated lower bound.  Thm 3: PCE/NMC interval valid for any M
+- Thm 4: prior fitted from n0 points, k params -> eps_p = chi2_k/(2 n0); bound holds under the TRUE prior,
+  for ALL designs at once (held in 99.7-100% of runs; plug-in EIG 3.5-66%)
+- Prop 6: no rule for eps_p can have a guarantee without information about the prior's error
+  -> explains Go & Isaac's "a definite a priori estimate seems unlikely"
+- Figure: `09_theory_checks.png`.  Proofs are in the blog (collapsible)
+
 ## Part 4 - Wrap-up (about 2-3 min)
 
 **12. What we learned**
-- eps does two jobs: prior error and estimator noise
+- eps does two jobs: prior error and estimator noise - and the noise job now has a principled answer
 - The tangent approximation cuts both ways
 - "Robust" needs a definition (max-min vs regret)
 - About AI: fast at generating, but every real error was caught by an independent check, not by the AI itself

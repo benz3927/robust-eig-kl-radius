@@ -72,6 +72,12 @@
   .refs li:target { background: rgba(242,166,90,.12); border-radius: 6px; }
   a.cite { text-decoration: none; font: 500 .85em var(--sans); vertical-align: .15em; }
   .todo { color: var(--accent); font-style: italic; }
+  .thm { background: var(--panel); border: 1px solid var(--rule); border-left: 3px solid var(--accent2);
+         border-radius: 12px; padding: 16px 22px 6px; margin: 28px 0 10px; }
+  .thm .label { display: block; font: 600 15px var(--sans); color: var(--accent2); margin-bottom: 6px; }
+  details { margin: 0 0 26px; border: 1px solid var(--rule); border-radius: 10px; padding: 6px 18px; background: #12161e; }
+  details > summary { cursor: pointer; font: 500 14px var(--sans); color: var(--muted); padding: 4px 0; }
+  details[open] > summary { margin-bottom: 8px; }
   footer { font: 14px var(--sans); color: var(--muted); border-top: 1px solid var(--rule); margin-top: 72px; padding-top: 20px; }
   @media (max-width: 860px) { figure { margin: 30px 0; } figcaption { margin: 10px 0 0; } }
 </style>
@@ -101,7 +107,12 @@ checks or numerical reference calculations, we find that (i) $\varepsilon$ is en
 approximation can both hide sensitivity and expose non-Gaussian worst cases, (iii) REIG's design switch in a two-sensor
 problem is confirmed for the true worst case by bracketing it with the paper's own bound, and (iv) a simple rule that
 pairs an over- and an under-estimating EIG estimator picks a radius from the data and gives the most accurate EIG
-estimates we tried. All results are preliminary and come from one-dimensional toy models.</p>
+estimates we tried. Most importantly, (v) we give a principled answer to one of the two jobs $\varepsilon$ does: choosing
+$\varepsilon = z_{1-\alpha}^2/(2N)$ turns REIG into a calibrated confidence bound for EIG, which yields confidence
+intervals and certified design choices that stay valid at any inner sample size. All results come from one-dimensional
+toy models. Finally, (vi) we prove these results and settle the prior part under a stated model: if the prior was fitted
+from $n_0$ data points with $k$ parameters, $\varepsilon_p=\chi^2_k/(2n_0)$ gives a guarantee under the true prior for all
+designs at once, and we prove that without some information about the prior's error no rule can carry a guarantee.</p>
 </div>
 
 <nav class="toc"><span class="label">Contents</span>
@@ -115,7 +126,8 @@ estimates we tried. All results are preliminary and come from one-dimensional to
   <li><a href="#s5">Results</a>
     <ol><li><a href="#s5-1">5.1 The implementation matches theory</a></li><li><a href="#s5-2">5.2 Estimator noise and &epsilon; interact</a></li>
         <li><a href="#s5-3">5.3 REIG can miss sensitivity</a></li><li><a href="#s5-4">5.4 ...but it can catch a danger simple checks miss</a></li>
-        <li><a href="#s5-5">5.5 A data-driven radius</a></li></ol></li>
+        <li><a href="#s5-5">5.5 A data-driven radius</a></li><li><a href="#s5-6">5.6 A calibrated radius: a principled answer for sampling noise</a></li></ol></li>
+  <li><a href="#s-theory">Theory: a complete answer, under a stated model of the prior error</a></li>
   <li><a href="#s6">Discussion and conclusions</a></li>
   <li><a href="#references">References</a></li>
 </ol></nav>
@@ -322,8 +334,218 @@ that radius the robust choice is broad.</figcaption></figure>
 <!-- ============================================================ -->
 <div class="finding"><span class="label">Finding 5 &mdash; Pairing estimators picks a usable radius</span>Choosing $\varepsilon$ where the robust versions of an over- and an under-estimator meet gave the most accurate EIG estimates we tried, though not always the best design ranking at the smallest budget.</div>
 
+<h3 id="s5-6"><span class="num">5.6</span>A calibrated radius: a principled answer for sampling noise</h3>
+
+<p>Sections 5.2 and 5.5 suggested that $\varepsilon$ has two jobs: protecting against a wrong prior, and absorbing
+sampling error. The second job turns out to have an exact answer.</p>
+
+<p><strong>Step 1: the penalty is a variance penalty.</strong> For small radii, the KL worst case of a mean has a simple
+expansion, a known result in distributionally robust optimization <a class="cite" href="#ref-duchi2021">[7]</a>:</p>
+
+$$ I_\varepsilon \;=\; \mathbb{E}_p[d] \;-\; \sqrt{2\varepsilon\,\mathrm{Var}_p(d)} \;+\; O(\varepsilon). $$
+
+<p>We checked this against the closed form in the linear-Gaussian model: for $\varepsilon\le 0.01$ the relative error is
+under 1% (panel A below).</p>
+
+<p><strong>Step 2: match it to a confidence bound.</strong> With $N$ i.i.d. samples $d_1,\dots,d_N$, the usual one-sided
+lower confidence bound for $\mathbb{E}_p[d]$ is $\bar d - z_{1-\alpha}\,\hat\sigma/\sqrt N$. Setting the two penalties equal
+gives the radius</p>
+
+$$ \varepsilon_N \;=\; \frac{z_{1-\alpha}^2}{2N}, \qquad\text{e.g. } \varepsilon_N \approx 0.0027 \text{ for } N=500,\ \alpha=0.05. $$
+
+<p>With this radius, REIG computed from samples <em>is</em> a $(1-\alpha)$ lower confidence bound for EIG. This makes
+precise the idea Go and Isaac sketch in their Section 8, sizing the ambiguity set to match the estimator's error. It
+also explains why a fixed radius like $0.05$ behaves badly: the right radius shrinks like $1/N$.</p>
+
+<p><strong>Step 3: handle inner-sample bias.</strong> Nested estimators are biased when the inner budget $M$ is small: NMC
+upward, the contrastive (PCE) estimator downward, both in expectation. Apply the calibrated radius to each, in the
+direction that only adds caution:</p>
+
+$$ \Big[\; I_{\varepsilon_N}\big(d^{\text{PCE}}\big),\;\; I^{\max}_{\varepsilon_N}\big(d^{\text{NMC}}\big) \;\Big]. $$
+
+<p>Each side errs in the safe direction, so this interval should cover EIG with probability at least about $1-2\alpha$
+for <em>any</em> $M$. This needs independent inner samples for each $\theta_i$, so that the $d_i$ are i.i.d.; our earlier
+experiments shared them, and we changed that here.</p>
+
+<p><strong>Step 4: combine with prior uncertainty.</strong> If the user also wants robustness to a prior error of size
+$\varepsilon_p$, the first-order penalties add as $\sqrt{2V}\,(\sqrt{\varepsilon_p}+\sqrt{\varepsilon_N})$, which suggests
+the combined radius</p>
+
+$$ \varepsilon_{\text{total}} \;=\; \big(\sqrt{\varepsilon_p} + \sqrt{\varepsilon_N}\big)^2 . $$
+
+<p><strong>Tests.</strong> Every claim was tested on models where the truth is known, with fixed seeds:</p>
+<table>
+<tr><th>Claim</th><th>Target</th><th>Result</th></tr>
+<tr><td>Calibrated REIG is a lower bound for EIG (exact $d$, $N$ = 25 to 1600, 4 designs, 1000 runs each)</td><td>95%</td><td>94.0% to 96.7%</td></tr>
+<tr><td>Same, with a fixed $\varepsilon = 0.05$</td><td>95%</td><td>94% to 100%, but up to 7&times; further below the truth at large $N$</td></tr>
+<tr><td>Interval covers EIG with inner noise ($M$ = 5, 20, 100; 18 settings, 300 runs each)</td><td>&ge; 90%</td><td>92.0% to 100%</td></tr>
+<tr><td>Naive NMC $\pm z\,$se interval, same settings</td><td>&ge; 90%</td><td>0% to 89%</td></tr>
+<tr><td>Combined radius bounds $I_{\varepsilon_p}$ ($\varepsilon_p$ = 0.01, 0.05, 0.2; linear-Gaussian)</td><td>95%</td><td>95.9% to 97.8%</td></tr>
+<tr><td>Plugging in $\varepsilon_p$ alone, same test</td><td>95%</td><td>46% to 57%</td></tr>
+</table>
+
+<figure><img src="figures/07_calibrated_radius.png" alt="Calibrated radius experiments">
+<figcaption>A: the robustness penalty against the first-order expansion. B: coverage of the calibrated lower bound with
+exact $d$. C: coverage of the new interval vs the naive NMC interval when inner samples are few. E: the combined radius
+for prior plus sampling uncertainty.</figcaption></figure>
+
+<p><strong>Decisions.</strong> The point of EIG is choosing a design. Separate intervals for the two sensors were too
+wide to ever tell them apart. Bounding the <em>difference</em> instead, with both sensors sharing the same random draws,
+works: we declare "sharp is better" only if the calibrated lower bound of $d^{\text{PCE}}_{\text{sharp}} -
+d^{\text{NMC}}_{\text{broad}}$ is positive. Across 2,700 runs it never declared the wrong sensor. With $M=500$ and
+$N=1600$ it declared the right one in every run; with $M\le 20$ it never declared either, because the inner bias is
+larger than the true gap of 0.153 nats. It stays silent rather than guess.</p>
+
+<figure><img src="figures/08_paired_certified_choice.png" alt="Certified design choice">
+<figcaption>Fraction of runs (300 per setting) in which the paired test certifies the correct sensor (solid) or the wrong
+one (dashed).</figcaption></figure>
+
+<p><strong>Where it is weaker.</strong> Coverage for the sharp sensor, whose $d(\theta)$ is the most skewed, dips to 94.0%
+at $N=400$; the guarantee is asymptotic and heavy skew slows it. For the Gaussian models coverage sits slightly above
+95%, because the $O(\varepsilon)$ term makes the bound a little conservative. When $M$ is very small the interval is valid
+but very wide (29 nats for the sharp sensor at $M=5$): it honestly reports that the inner estimates are poor.</p>
+<div class="finding"><span class="label">Finding 6 &mdash; A calibrated radius for sampling noise</span>Choosing $\varepsilon = z^2/(2N)$ makes REIG a valid confidence bound. Paired with PCE and NMC it gives intervals that stay valid for any inner budget and design choices that were never wrong in our tests. The prior-uncertainty part of $\varepsilon$ is still a modelling choice, but the two parts combine by a simple rule.</div>
+
 <!-- ============================================================ -->
-<h2 id="s6"><span class="num">6</span>Discussion and conclusions</h2>
+<h2 id="s-theory"><span class="num">6</span>Theory: a complete answer, under a stated model of the prior error</h2>
+
+<p>The experiments suggested an answer. This section states it as theorems, proves them, and says exactly where each
+one was checked. The short version:</p>
+
+<div class="finding"><span class="label">The rule</span>
+<ul>
+  <li><strong>Sampling error.</strong> With $N$ prior samples, use $\varepsilon_N = z_{1-\alpha}^2/(2N)$. Then sampled REIG
+      is a calibrated $(1-\alpha)$ lower bound for EIG (Theorem 2), and the PCE/NMC version is a valid interval for
+      any inner budget $M$ (Theorem 3).</li>
+  <li><strong>Prior error.</strong> If the prior was fitted from $n_0$ data points with $k$ parameters, use
+      $\varepsilon_p = \chi^2_{k,1-\alpha}/(2n_0)$. Then $I_{\varepsilon_p}(\hat p,\xi)-\varepsilon_p$ is a lower bound on the
+      EIG under the <em>true</em> prior, for all designs at once (Theorem 4).</li>
+  <li><strong>No free lunch.</strong> If nothing is known about how wrong the prior might be, no rule for
+      $\varepsilon_p$ can come with a guarantee (Proposition 6). The radius then expresses belief, and Theorem 4 gives a
+      way to state it: "my prior is worth $n_0$ observations" means $\varepsilon_p=\chi^2_k/(2n_0)$.</li>
+</ul></div>
+
+<p>Throughout, $d(\theta)=\mathrm{KL}(p(y\mid\theta,\xi)\,\|\,p(y\mid\xi))$, $\mu=\mathbb{E}_p[d]=I(p,\xi)$,
+$\sigma^2=\mathrm{Var}_p(d)>0$, and $I_\varepsilon(p)=\inf\{\mathbb{E}_q[d]:\mathrm{KL}(q\|p)\le\varepsilon\}$, which is
+Go and Isaac's REIG <a class="cite" href="#ref-go2022">[1]</a>.</p>
+
+<div class="thm"><span class="label">Theorem 1 &mdash; Variance expansion</span>
+<p>If $|d-\mu|\le B$, there are constants $C,\varepsilon_0$ depending only on $B$ and $\sigma$ such that for
+$0<\varepsilon\le\varepsilon_0$,</p>
+$$ \Big|\,I_\varepsilon(p)-\big(\mu-\sigma\sqrt{2\varepsilon}\,\big)\Big| \;\le\; C\varepsilon . $$
+<p>More precisely, $I_\varepsilon(p)=\mu-\sigma\sqrt{2\varepsilon}+\dfrac{\kappa_3}{3\sigma^2}\,\varepsilon+O(\varepsilon^{3/2})$,
+where $\kappa_3=\mathbb{E}_p[(d-\mu)^3]$.</p>
+</div>
+<details><summary>Proof</summary>
+<p>Let $\psi(t)=\log\mathbb{E}_p e^{-t(d-\mu)}$. Since $|d-\mu|\le B$, Taylor's theorem gives
+$\big|\psi(t)-\sigma^2t^2/2\big|\le B^3t^3e^{Bt}/6$ and a similar bound for $\psi'$.</p>
+<p><em>Lower bound.</em> The Gibbs (Donsker&ndash;Varadhan) inequality says $\mathbb{E}_q[f]\le
+\mathrm{KL}(q\|p)+\log\mathbb{E}_p e^{f}$ for every $q\ll p$. Take $f=-d/\lambda$: for every feasible $q$ and every
+$\lambda>0$, $\mathbb{E}_q[d]\ge\mu-\lambda\psi(1/\lambda)-\lambda\varepsilon$. Choose $\lambda=\sigma/\sqrt{2\varepsilon}$:
+the main terms give $\mu-\sigma^2/(2\lambda)-\lambda\varepsilon=\mu-\sigma\sqrt{2\varepsilon}$, and the remainder is at
+most $\lambda B^3e^{B/\lambda}/(6\lambda^3)=O(\varepsilon)$.</p>
+<p><em>Upper bound.</em> The exponential tilt $q_t\propto p\,e^{-td}$ has $\mathbb{E}_{q_t}[d]=\mu-\psi'(t)$ and
+$\mathrm{KL}(q_t\|p)=t\psi'(t)-\psi(t)$, which rises continuously from $0$. Pick $t^*$ with $\mathrm{KL}=\varepsilon$. Expanding,
+$t^*=\sqrt{2\varepsilon}/\sigma+O(\varepsilon)$ and $\mathbb{E}_{q_{t^*}}[d]=\mu-\sigma\sqrt{2\varepsilon}+O(\varepsilon)$. Since
+$q_{t^*}$ is feasible, $I_\varepsilon(p)$ is at most this.</p>
+<p>The tilt is in fact the exact minimizer (it is the dual's solution, with $t=1/\lambda^*$), so expanding it further gives
+the exact series. We did that symbolically (Exp 10) and found the second-order coefficient $\kappa_3/(3\sigma^2)$. Against
+the linear-Gaussian closed form, the first-order error at $\varepsilon=0.01$ is $5.2\times10^{-3}$; with the second-order
+term it drops to $9.1\times10^{-5}$. $\square$</p>
+</details>
+
+<div class="thm"><span class="label">Theorem 2 &mdash; Calibrated radius for sampling error</span>
+<p>Let $d_1,\dots,d_N$ be i.i.d. with the distribution of $d(\theta)$, $\theta\sim p$, bounded as above, and let
+$\hat I=I_{\varepsilon_N}(\hat P_N)$ be REIG of their empirical distribution with $\varepsilon_N=z_{1-\alpha}^2/(2N)$. Then</p>
+$$ \Pr\big(\hat I\le I(p,\xi)\big)\;\longrightarrow\;1-\alpha \qquad (N\to\infty). $$
+</div>
+<details><summary>Proof</summary>
+<p>Apply Theorem 1 to $\hat P_N$. Its range is at most $2B$, and its standard deviation $\hat\sigma\to\sigma$ almost
+surely, so on the event $\hat\sigma\ge\sigma/2$ (whose probability tends to one) the constants are uniform. This gives
+$\hat I=\bar d-\hat\sigma\sqrt{2\varepsilon_N}+O(\varepsilon_N)=\bar d-z_{1-\alpha}\hat\sigma/\sqrt N+O(1/N)$. Hence
+$\Pr(\hat I\le\mu)=\Pr\big(\sqrt N(\bar d-\mu)/\hat\sigma\le z_{1-\alpha}+O(N^{-1/2})\big)\to\Phi(z_{1-\alpha})=1-\alpha$
+by the central limit theorem and Slutsky's lemma. $\square$</p>
+<p>This is a special case of the general theory of Duchi, Glynn and Namkoong <a class="cite" href="#ref-duchi2021">[7]</a>,
+who prove calibrated coverage for $f$-divergence balls (their radius $\rho/n$ with $f''(1)=2$ converts to ours). Boundedness
+can be relaxed to finite exponential moments near zero, as for the linear-Gaussian model. Checked in Exp 07B:
+coverage 94.0&ndash;96.7% against a 95% target.</p>
+</details>
+
+<div class="thm"><span class="label">Theorem 3 &mdash; An interval that is valid for any inner budget</span>
+<p>Let $d^{\rm L}_i$ be i.i.d. contrastive (PCE) terms and $d^{\rm U}_i$ i.i.d. nested Monte Carlo terms, each with its
+own $M\ge1$ inner samples. Then</p>
+$$ \Pr\Big(I_{\varepsilon_N}(\hat P^{\rm L}_N)\;\le\;I(p,\xi)\;\le\;I^{\max}_{\varepsilon_N}(\hat P^{\rm U}_N)\Big)\;\ge\;1-2\alpha-o(1). $$
+</div>
+<details><summary>Proof</summary>
+<p>For every $M$, $\mathbb{E}[d^{\rm L}]\le I(p,\xi)\le\mathbb{E}[d^{\rm U}]$. The left inequality is the PCE lower bound
+of Foster et al. <a class="cite" href="#ref-foster2020">[3]</a>. The right one is Jensen's inequality: the inner average is an
+unbiased estimate of $p(y\mid\xi)$, so the expected log of it is at most $\log p(y\mid\xi)$. Therefore
+$\Pr\big(I_{\varepsilon_N}(\hat P^{\rm L}_N)>I(p,\xi)\big)\le\Pr\big(I_{\varepsilon_N}(\hat P^{\rm L}_N)>\mathbb{E}[d^{\rm L}]\big)\to\alpha$
+by Theorem 2, and the same for the upper side with the robust maximum. A union bound finishes the proof. $\square$</p>
+<p>The independence of the inner samples matters: shared inner samples make the $d_i$ dependent. Checked in Exp 07C:
+coverage 92&ndash;100% in all 18 settings, including $M=5$, against 0&ndash;89% for the usual interval.</p>
+</details>
+
+<div class="thm"><span class="label">Theorem 4 &mdash; A radius for a prior fitted from data</span>
+<p>Let $\{p_\eta:\eta\in\mathbb{R}^k\}$ be a regular parametric family, let the true prior be $q=p_{\eta_0}$, and let
+$\hat p=p_{\hat\eta}$ be its maximum-likelihood fit from $n_0$ i.i.d. observations. With
+$\varepsilon_p=\chi^2_{k,1-\alpha}/(2n_0)$,</p>
+$$ \Pr\Big(\;I(q,\xi)\;\ge\;I_{\varepsilon_p}(\hat p,\xi)-\varepsilon_p\;\;\text{for every design }\xi\Big)\;\ge\;1-\alpha-o(1). $$
+</div>
+<details><summary>Proof</summary>
+<p><em>Step 1: the ball contains the true prior.</em> With $\Delta=\hat\eta-\eta_0$,
+$\mathrm{KL}(p_{\eta_0}\|p_{\hat\eta})=\tfrac12\Delta^\top F(\eta_0)\Delta+o(\|\Delta\|^2)$, where $F$ is the Fisher information,
+and $n_0\,\Delta^\top F\Delta\to\chi^2_k$ in distribution <a class="cite" href="#ref-vdv1998">[8]</a>. So
+$\Pr\big(\mathrm{KL}(q\|\hat p)\le\varepsilon_p\big)\to1-\alpha$.</p>
+<p><em>Step 2: on that event the bound holds for every design.</em> Go and Isaac's identity (their eq. 10) holds for any
+reference: $I(q,\xi)=I_{\rm aff}(q,\xi;\hat p)-\mathrm{KL}(q(y\mid\xi)\,\|\,\hat p(y\mid\xi))$. By the data-processing
+inequality the last KL is at most $\mathrm{KL}(q\|\hat p)\le\varepsilon_p$. Since $q$ is in the ball,
+$I_{\rm aff}(q,\xi;\hat p)\ge I_{\varepsilon_p}(\hat p,\xi)$. Together: $I(q,\xi)\ge I_{\varepsilon_p}(\hat p,\xi)-\varepsilon_p$.
+The event in Step 1 does not involve $\xi$, so the bound holds for all designs at once. $\square$</p>
+<p>A consequence: the design that maximizes $I_{\varepsilon_p}(\hat p,\xi)-\varepsilon_p$ comes with a certificate for its
+performance under the true prior. Checked in Exp 09A: the bound held for all designs in 99.7&ndash;100% of runs; using the
+fitted prior's plain EIG held in only 3.5&ndash;66%. The bound is conservative, and the ball contained the true prior in
+84% of runs at $n_0=10$, rising to 95% at $n_0=300$, as expected for an asymptotic result.</p>
+</details>
+
+<div class="thm"><span class="label">Proposition 5 &mdash; Sampling error at a fixed prior radius</span>
+<p>For fixed $\varepsilon_p>0$ with a unique dual solution $\lambda^*$, let
+$w=e^{-d/\lambda^*}/\mathbb{E}_p e^{-d/\lambda^*}$ be the worst-case likelihood ratio. Then
+$\sqrt N\big(I_{\varepsilon_p}(\hat P_N)-I_{\varepsilon_p}(p)\big)\to N\big(0,\lambda^{*2}\mathrm{Var}_p(w)\big)$, so
+$I_{\varepsilon_p}(\hat P_N)-z_{1-\alpha}\hat\lambda\,\widehat{\mathrm{sd}}(\hat w)/\sqrt N$ is an asymptotic
+$(1-\alpha)$ lower bound for $I_{\varepsilon_p}(p)$.</p>
+</div>
+<details><summary>Proof sketch</summary>
+<p>$I_{\varepsilon_p}(P)=\sup_\lambda\{-\lambda\log\mathbb{E}_Pe^{-d/\lambda}-\lambda\varepsilon_p\}$. By the envelope theorem
+its derivative in the direction $\delta_x-P$ is $-\lambda^*(w(x)-1)$, which is its influence function. Hadamard
+differentiability (as in <a class="cite" href="#ref-duchi2021">[7]</a>) and the functional delta method give the limit.
+As $\varepsilon_p\to0$, $\lambda^*\mathrm{sd}(w)\to\sigma$ and the bound reduces to Theorem 2. Our earlier rule
+$\varepsilon_{\rm total}=(\sqrt{\varepsilon_p}+\sqrt{\varepsilon_N})^2$ is its first-order version. Checked in Exp 09B:
+coverage 93.0&ndash;97.6% (delta method) and 94.4&ndash;98.0% (combined radius), with nearly identical gaps. $\square$</p>
+</details>
+
+<div class="thm"><span class="label">Proposition 6 &mdash; No data-free rule exists</span>
+<p>Suppose everything the designer observes (samples from $p$, the likelihood, simulator outputs) has a distribution that
+does not depend on the true prior $q$. Then for any rule $\hat\varepsilon$ and any $\delta>0$ there is a true prior $q$ with
+$\Pr\big(\mathrm{KL}(q\|p)\le\hat\varepsilon\big)<\delta$.</p>
+</div>
+<details><summary>Proof</summary>
+<p>The law of $\hat\varepsilon$ is the same whatever $q$ is, so there is a constant $c$ with
+$\Pr(\hat\varepsilon>c)<\delta$. The divergence $\mathrm{KL}(q\|p)$ is unbounded over priors $q\ll p$ (shift the mean far
+enough), so choose $q$ with $\mathrm{KL}(q\|p)>c$. Then $\Pr(\mathrm{KL}(q\|p)\le\hat\varepsilon)\le\Pr(\hat\varepsilon>c)<\delta$.
+$\square$</p>
+<p>This is why the prior part of the question cannot be answered from simulation alone, and why Go and Isaac found that
+"a definite a priori estimate for $\varepsilon$ seems unlikely." Information about the prior's error has to come from
+somewhere. Theorem 4 handles the case where it comes from data.</p>
+</details>
+
+<figure><img src="figures/09_theory_checks.png" alt="Theory checks">
+<figcaption>Left: Theorem 4, with the prior fitted from $n_0$ draws and $\varepsilon_p=\chi^2_2/(2n_0)$; the fraction of runs in
+which the bound held for every design at once, under the true prior. Right: Proposition 5, delta-method bound (solid)
+against the combined radius (dotted).</figcaption></figure>
+
+<!-- ============================================================ -->
+<h2 id="s6"><span class="num">7</span>Discussion and conclusions</h2>
 
 <p>What we learned:</p>
 <ul>
@@ -336,6 +558,12 @@ that radius the robust choice is broad.</figcaption></figure>
       intervals tight enough to confirm REIG's design choice at every radius but one.</li>
   <li><strong>"Robust" needs a definition.</strong> Maximizing the worst-case EIG and minimizing regret (over the priors
       we tested) chose different sensors in the same problem.</li>
+  <li><strong>Half of the open question has a principled answer.</strong> For sampling error, the radius should be
+      $z^2/(2N)$, not a fixed number. It turns REIG into a confidence bound, makes the paper's two-estimator idea into an
+      interval with guaranteed coverage, and supports design choices that refuse to guess. For prior error, Section 6
+      gives a rule with a guarantee when the prior was fitted from data, and proves that no rule can have a guarantee
+      without some information about the prior's error. In that sense the question is answered: $\varepsilon$ is
+      determined by what you know about your samples and your prior, and by nothing else.</li>
   <li><strong>Pairing an over- and under-estimator gives a usable radius.</strong> The crossing rule gave the
       most accurate EIG estimates we tried on our toy problems, which supports the paper's suggestion. A more accurate
       estimate did not always mean a better design choice, though (Section 5.5, $M=5$).</li>
@@ -346,13 +574,22 @@ that radius the robust choice is broad.</figcaption></figure>
   <li>All models are small and one-dimensional in $\theta$. We have not tested the paper's own benchmarks
       (A/B test, preference, pharmacokinetic).</li>
   <li>The true worst case is only bracketed, not computed, in the sensor model, and all sensor values rely on a numerical grid.</li>
-  <li>The crossing rule has no theory yet, and we only tested it with plain NMC and a simple contrastive estimator.</li>
+  <li>The crossing rule has no theory yet; the calibrated interval of Section 5.6 is the principled replacement.</li>
+  <li>Theorems 2&ndash;4 are asymptotic and assume bounded (or light-tailed) $d$ and a correctly specified parametric
+      family for the prior; Theorem 4's bound is conservative in practice. Proofs were checked numerically and, for the
+      expansion, symbolically; they were not formally verified (for example in Lean).</li>
+  <li>The calibrated radius is an asymptotic result. Coverage was slightly below target (94%) for the most skewed model
+      at moderate $N$, and the combined radius for prior plus sampling error is a first-order rule tested only on the
+      linear-Gaussian model.</li>
 </ul>
 
 <p>Future directions:</p>
 <ul>
   <li>Test the crossing rule on the paper's benchmarks and with learned (variational) estimators.</li>
-  <li>Derive when the crossing point exists and how $\varepsilon^*$ scales with $M$ and $N_2$.</li>
+  <li>A finite-sample version of the calibrated radius (for example via a bootstrap) for skewed $d(\theta)$.</li>
+  <li>Eliciting $\varepsilon_p$ for subjective priors, for example from disagreement between experts or an "effective
+      sample size" for the prior, which Theorem 4 turns into a radius.</li>
+  <li>Using the second-order term $\kappa_3\varepsilon/(3\sigma^2)$ to correct coverage for skewed $d(\theta)$.</li>
   <li>Compare REIG with regret-based robust design on problems with many candidate designs.</li>
 </ul>
 
@@ -369,10 +606,14 @@ that radius the robust choice is broad.</figcaption></figure>
   <li id="ref-ryan2003">K. J. Ryan. Estimating expected information gains for experimental designs with application to the random
       fatigue-limit model. <em>Journal of Computational and Graphical Statistics</em>, 12(3), 2003.</li>
   <li id="ref-krause2025">A. Krause and J. H&uuml;botter. <em>Probabilistic Artificial Intelligence</em>. arXiv:2502.05244, 2025.</li>
+  <li id="ref-duchi2021">J. C. Duchi, P. W. Glynn and H. Namkoong. Statistics of robust optimization: a generalized empirical
+      likelihood approach. <em>Mathematics of Operations Research</em>, 46(3):946&ndash;969, 2021.
+      <a href="https://arxiv.org/abs/1610.03425">arXiv:1610.03425</a></li>
+  <li id="ref-vdv1998">A. W. van der Vaart. <em>Asymptotic Statistics</em>. Cambridge University Press, 1998.</li>
 </ol>
 
 <footer>All figures can be reproduced from the repository with
-<code>for f in experiments/0*.py; do python "$f"; done</code>. Built as a single static HTML page and hosted on GitHub Pages.</footer>
+<code>for f in experiments/0*.py; do python "$f"; done</code> (about 20 minutes). Built as a single static HTML page and hosted on GitHub Pages.</footer>
 </div>
 </main>
 </body>

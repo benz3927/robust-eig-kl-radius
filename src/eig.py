@@ -168,3 +168,81 @@ def crossing_estimate(d_up, d_lo, hi=2.0, iters=40):
         lo_e, hi_e = (mid, hi_e) if f(mid) > 0 else (lo_e, mid)
     e = 0.5 * (lo_e + hi_e)
     return e, 0.5 * (reig_dual(d_up, e)[0] + reig_max_dual(d_lo, e)[0])
+
+
+# ---------- calibrated radii (Exp 07) ----------
+
+def eps_stat(n, alpha=0.05):
+    """KL radius that turns REIG of n i.i.d. samples into a one-sided (1 - alpha)
+    lower confidence bound for their mean.
+
+    Small-eps expansion of the KL-ball worst case (cf. Duchi, Glynn & Namkoong 2021):
+        inf_{KL(q||p_n) <= eps} E_q[d] = mean(d) - sqrt(2 eps Var(d)) + O(eps)
+    Matching mean(d) - z_{1-alpha} sd(d)/sqrt(n) gives eps = z^2 / (2n).
+    """
+    from scipy.stats import norm
+    return norm.ppf(1 - alpha) ** 2 / (2 * n)
+
+
+def eps_combined(eps_prior, n, alpha=0.05):
+    """First-order rule for robustness to a prior error eps_prior AND sampling error:
+    the two penalties add as sqrt(2 V)(sqrt(eps_prior) + sqrt(eps_stat)),
+    so eps_total = (sqrt(eps_prior) + sqrt(eps_stat))^2. Heuristic; tested in Exp 07."""
+    return (np.sqrt(eps_prior) + np.sqrt(eps_stat(n, alpha))) ** 2
+
+
+def eig_interval(d_lo, d_up, alpha=0.05):
+    """Two-sided interval for EIG from a lower-biased (e.g. PCE/contrastive) and an
+    upper-biased (e.g. NMC) set of per-theta samples, each of size n:
+        [ REIG(d_lo, eps_n),  REIG_max(d_up, eps_n) ],  eps_n = eps_stat(n, alpha).
+    Each side should hold with prob >= 1 - alpha as n grows, for ANY inner budget M,
+    because the inner bias only pushes each side further out. Needs i.i.d. d_i
+    (independent inner samples per theta: use d_samples_indep)."""
+    e = eps_stat(len(d_lo), alpha)
+    return reig_dual(d_lo, e)[0], reig_max_dual(d_up, e)[0]
+
+
+def d_samples_indep(x, n1=200, n2=1, m=20, s_theta=1.0, s_noise=1.0,
+                    contrastive=False, rng=None):
+    """Like d_samples_nmc, but every theta_i gets its OWN m inner prior samples,
+    so the d_i are i.i.d. (needed for the confidence-bound theory)."""
+    rng = np.random.default_rng(rng)
+    theta = rng.normal(0.0, s_theta, n1)
+    y = x * theta[:, None] + rng.normal(0.0, s_noise, (n1, n2))
+    theta_in = rng.normal(0.0, s_theta, (n1, 1, m))
+    own = _log_lik(y, theta[:, None], x, s_noise)
+    inner = _log_lik(y[..., None], theta_in, x, s_noise)
+    if contrastive:
+        inner = np.concatenate([inner, own[..., None]], axis=-1)
+    log_ev = logsumexp(inner, axis=-1) - np.log(inner.shape[-1])
+    return theta, (own - log_ev).mean(axis=1)
+
+
+# ---------- Theory section (Exp 09) ----------
+
+def eps_prior_from_fit(k, n0, alpha=0.05):
+    """Radius for a prior FITTED by maximum likelihood from n0 observations with k
+    parameters: 2 n0 KL(true || fitted) -> chi^2_k (Wilks-type), so the KL ball of radius
+    chi2_{k,1-alpha}/(2 n0) around the fitted prior contains the true prior w.p. -> 1-alpha."""
+    from scipy.stats import chi2
+    return chi2.ppf(1 - alpha, k) / (2 * n0)
+
+
+def reig_lcb_delta(d, eps, alpha=0.05):
+    """Lower confidence bound for the population REIG at a FIXED radius eps (prior
+    uncertainty), accounting for sampling error by the delta method.
+
+    REIG(P) = sup_lam [-lam log E_P exp(-d/lam) - lam eps]. By the envelope theorem its
+    influence function is  -lam* (w(d) - 1),  w = exp(-d/lam*) / E exp(-d/lam*)
+    (the worst-case likelihood ratio). So se = lam* sd(w) / sqrt(N).
+    As eps -> 0, lam* sd(w) -> sd(d) and this reduces to the plain CLT bound."""
+    from scipy.stats import norm
+    d = np.asarray(d, float)
+    val, lam = reig_dual(d, eps)
+    if not np.isfinite(lam):
+        se = d.std(ddof=1) / np.sqrt(d.size)
+    else:
+        lw = -(d - d.min()) / lam
+        w = np.exp(lw - logsumexp(lw) + np.log(d.size))      # mean(w) = 1
+        se = lam * w.std(ddof=1) / np.sqrt(d.size)
+    return val - norm.ppf(1 - alpha) * se
