@@ -78,6 +78,7 @@
   details { margin: 0 0 26px; border: 1px solid var(--rule); border-radius: 10px; padding: 6px 18px; background: #12161e; }
   details > summary { cursor: pointer; font: 500 14px var(--sans); color: var(--muted); padding: 4px 0; }
   details[open] > summary { margin-bottom: 8px; }
+  .plain { font: 15px/1.55 var(--sans); color: var(--muted); border-top: 1px dashed var(--rule); padding-top: 10px; margin-top: 4px; }
   footer { font: 14px var(--sans); color: var(--muted); border-top: 1px solid var(--rule); margin-top: 72px; padding-top: 20px; }
   @media (max-width: 860px) { figure { margin: 30px 0; } figcaption { margin: 10px 0 0; } }
 </style>
@@ -435,8 +436,9 @@ $0<\varepsilon\le\varepsilon_0$,</p>
 $$ \Big|\,I_\varepsilon(p)-\big(\mu-\sigma\sqrt{2\varepsilon}\,\big)\Big| \;\le\; C\varepsilon . $$
 <p>More precisely, $I_\varepsilon(p)=\mu-\sigma\sqrt{2\varepsilon}+\dfrac{\kappa_3}{3\sigma^2}\,\varepsilon+O(\varepsilon^{3/2})$,
 where $\kappa_3=\mathbb{E}_p[(d-\mu)^3]$.</p>
+<p class="plain"><strong>In plain words:</strong> Making the result robust costs about $\sigma\sqrt{2\varepsilon}$: the spread of the per-sample information gain, times the square root of the radius.</p>
 </div>
-<details><summary>Proof</summary>
+<details open><summary>Proof</summary>
 <p>Let $\psi(t)=\log\mathbb{E}_p e^{-t(d-\mu)}$. Since $|d-\mu|\le B$, Taylor's theorem gives
 $\big|\psi(t)-\sigma^2t^2/2\big|\le B^3t^3e^{Bt}/6$ and a similar bound for $\psi'$.</p>
 <p><em>Lower bound.</em> The Gibbs (Donsker&ndash;Varadhan) inequality says $\mathbb{E}_q[f]\le
@@ -458,8 +460,9 @@ term it drops to $9.1\times10^{-5}$. $\square$</p>
 <p>Let $d_1,\dots,d_N$ be i.i.d. with the distribution of $d(\theta)$, $\theta\sim p$, bounded as above, and let
 $\hat I=I_{\varepsilon_N}(\hat P_N)$ be REIG of their empirical distribution with $\varepsilon_N=z_{1-\alpha}^2/(2N)$. Then</p>
 $$ \Pr\big(\hat I\le I(p,\xi)\big)\;\longrightarrow\;1-\alpha \qquad (N\to\infty). $$
+<p class="plain"><strong>In plain words:</strong> With radius $z^2/(2N)$, REIG is a 95% lower bound for the true EIG. No tuning is needed.</p>
 </div>
-<details><summary>Proof</summary>
+<details open><summary>Proof</summary>
 <p>Apply Theorem 1 to $\hat P_N$. Its range is at most $2B$, and its standard deviation $\hat\sigma\to\sigma$ almost
 surely, so on the event $\hat\sigma\ge\sigma/2$ (whose probability tends to one) the constants are uniform. This gives
 $\hat I=\bar d-\hat\sigma\sqrt{2\varepsilon_N}+O(\varepsilon_N)=\bar d-z_{1-\alpha}\hat\sigma/\sqrt N+O(1/N)$. Hence
@@ -475,8 +478,9 @@ coverage 94.0&ndash;96.7% against a 95% target.</p>
 <p>Let $d^{\rm L}_i$ be i.i.d. contrastive (PCE) terms and $d^{\rm U}_i$ i.i.d. nested Monte Carlo terms, each with its
 own $M\ge1$ inner samples. Then</p>
 $$ \Pr\Big(I_{\varepsilon_N}(\hat P^{\rm L}_N)\;\le\;I(p,\xi)\;\le\;I^{\max}_{\varepsilon_N}(\hat P^{\rm U}_N)\Big)\;\ge\;1-2\alpha-o(1). $$
+<p class="plain"><strong>In plain words:</strong> Even when each inner estimate is poor, the interval still contains the true EIG. A poor estimate only makes the interval wider.</p>
 </div>
-<details><summary>Proof</summary>
+<details open><summary>Proof</summary>
 <p>For every $M$, $\mathbb{E}[d^{\rm L}]\le I(p,\xi)\le\mathbb{E}[d^{\rm U}]$. The left inequality is the PCE lower bound
 of Foster et al. <a class="cite" href="#ref-foster2020">[3]</a>. The right one is Jensen's inequality: the inner average is an
 unbiased estimate of $p(y\mid\xi)$, so the expected log of it is at most $\log p(y\mid\xi)$. Therefore
@@ -491,8 +495,9 @@ coverage 92&ndash;100% in all 18 settings, including $M=5$, against 0&ndash;89% 
 $\hat p=p_{\hat\eta}$ be its maximum-likelihood fit from $n_0$ i.i.d. observations. With
 $\varepsilon_p=\chi^2_{k,1-\alpha}/(2n_0)$,</p>
 $$ \Pr\Big(\;I(q,\xi)\;\ge\;I_{\varepsilon_p}(\hat p,\xi)-\varepsilon_p\;\;\text{for every design }\xi\Big)\;\ge\;1-\alpha-o(1). $$
+<p class="plain"><strong>In plain words:</strong> If you fitted your prior from $n_0$ data points, use radius $\chi^2_k/(2n_0)$. Then you get a guaranteed lower bound on what each design gives under the real prior.</p>
 </div>
-<details><summary>Proof</summary>
+<details open><summary>Proof</summary>
 <p><em>Step 1: the ball contains the true prior.</em> With $\Delta=\hat\eta-\eta_0$,
 $\mathrm{KL}(p_{\eta_0}\|p_{\hat\eta})=\tfrac12\Delta^\top F(\eta_0)\Delta+o(\|\Delta\|^2)$, where $F$ is the Fisher information,
 and $n_0\,\Delta^\top F\Delta\to\chi^2_k$ in distribution <a class="cite" href="#ref-vdv1998">[8]</a>. So
@@ -514,8 +519,9 @@ $w=e^{-d/\lambda^*}/\mathbb{E}_p e^{-d/\lambda^*}$ be the worst-case likelihood 
 $\sqrt N\big(I_{\varepsilon_p}(\hat P_N)-I_{\varepsilon_p}(p)\big)\to N\big(0,\lambda^{*2}\mathrm{Var}_p(w)\big)$, so
 $I_{\varepsilon_p}(\hat P_N)-z_{1-\alpha}\hat\lambda\,\widehat{\mathrm{sd}}(\hat w)/\sqrt N$ is an asymptotic
 $(1-\alpha)$ lower bound for $I_{\varepsilon_p}(p)$.</p>
+<p class="plain"><strong>In plain words:</strong> You can add sampling error on top of a chosen prior radius with an ordinary standard error. Our earlier rule of thumb is the simple version of this.</p>
 </div>
-<details><summary>Proof sketch</summary>
+<details open><summary>Proof sketch</summary>
 <p>$I_{\varepsilon_p}(P)=\sup_\lambda\{-\lambda\log\mathbb{E}_Pe^{-d/\lambda}-\lambda\varepsilon_p\}$. By the envelope theorem
 its derivative in the direction $\delta_x-P$ is $-\lambda^*(w(x)-1)$, which is its influence function. Hadamard
 differentiability (as in <a class="cite" href="#ref-duchi2021">[7]</a>) and the functional delta method give the limit.
@@ -528,8 +534,9 @@ coverage 93.0&ndash;97.6% (delta method) and 94.4&ndash;98.0% (combined radius),
 <p>Suppose everything the designer observes (samples from $p$, the likelihood, simulator outputs) has a distribution that
 does not depend on the true prior $q$. Then for any rule $\hat\varepsilon$ and any $\delta>0$ there is a true prior $q$ with
 $\Pr\big(\mathrm{KL}(q\|p)\le\hat\varepsilon\big)<\delta$.</p>
+<p class="plain"><strong>In plain words:</strong> Simulation alone cannot tell you how wrong your prior is, so no rule based on simulation alone can choose the prior radius.</p>
 </div>
-<details><summary>Proof</summary>
+<details open><summary>Proof</summary>
 <p>The law of $\hat\varepsilon$ is the same whatever $q$ is, so there is a constant $c$ with
 $\Pr(\hat\varepsilon>c)<\delta$. The divergence $\mathrm{KL}(q\|p)$ is unbounded over priors $q\ll p$ (shift the mean far
 enough), so choose $q$ with $\mathrm{KL}(q\|p)>c$. Then $\Pr(\mathrm{KL}(q\|p)\le\hat\varepsilon)\le\Pr(\hat\varepsilon>c)<\delta$.
